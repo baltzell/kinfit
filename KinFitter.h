@@ -16,7 +16,7 @@ class KinFitter{
         double GetChi2() { return _chi2; }
         double GetNDF() { return _ndf; }
         TVectorD GetPulls() { return _pulls; }
-        std::vector<TLorentzVector> GetFinal() { return _Ps_y; }
+        std::vector<TLorentzVector> GetFitted4Vectors() { return _Ps_y; }
 
     private:
         Double_t _confLevel;
@@ -226,7 +226,7 @@ class KinFitter{
             TMatrixD BT = _B;
             BT.T();
 
-            TMatrixD D  = _C_eta * BT; // _C_eta is defined at the ctor level
+            TMatrixD D  = _C_eta * BT;
 
             SetMu(AA);
 
@@ -312,6 +312,7 @@ class KinFitter{
 
             if( _A.GetNrows() != 0 ){
                 TMatrixD AT = _A;
+                _A.T();
                 TMatrixD C_y3 = C_y1 * _A * _C_x * AT * _C_B * _B * _C_eta;    
                 _C_y += C_y3;
             }
