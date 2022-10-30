@@ -142,9 +142,9 @@ void test()
         }
     }
 
-    auto Can_missing = new TCanvas("can1","Summary",800,800);
-    Can_missing->Divide(1,3);
-    Can_missing->cd(1);
+    auto c_missing = new TCanvas("can1","Summary",800,800);
+    c_missing->Divide(1,3);
+    c_missing->cd(1);
     gPad->SetLogy();
     h_mm_gen->Draw("hist");
     h_mm_fit->SetLineColor(kGreen);
@@ -159,44 +159,45 @@ void test()
     legend->SetFillStyle(0);
     legend->SetLineWidth(0);
     legend->Draw("same ");      
-    Can_missing->cd(3);
+    c_missing->cd(3);
     h_chi->Draw();
-    Can_missing->cd(2);
+    c_missing->cd(2);
     gPad->SetLogy();
     h_lik->Draw();
 
-    Can_missing->SaveAs("Can_Missing.pdf");
+    c_missing->SaveAs("c_Missing.pdf");
 
     TString fitopt="Q";
-    auto Can_pulls = new TCanvas("can2","Pulls",900,600);
-    Can_pulls->Divide(3,3);
+    auto c_pulls = new TCanvas("can2","Pulls",900,600);
+    c_pulls->Divide(3,3);
     for (int ipart=0; ipart<parts.size(); ipart++) {
         for (int jkine=0; jkine<kines.size(); jkine++) {
-            Can_pulls->cd(ipart*kines.size()+jkine+1);
+            c_pulls->cd(ipart*kines.size()+jkine+1);
             h_pulls[ipart*kines.size()+jkine]->Fit("gaus",fitopt);
         }
     }
-    Can_pulls->SaveAs("Can_pulls.pdf");     
+    c_pulls->SaveAs("c_pulls.pdf");     
 
 /*
-    auto Can_res = new TCanvas("can3","Residuals",900,600);
-    Can_res->Divide(3,3);
+    auto c_res = new TCanvas("can3","Residuals",900,600);
+    c_res->Divide(3,3);
     for (int ipart=0; ipart<parts.size(); ipart++) {
         for (int jkine=0; jkine<kines.size(); jkine++) {
-            Can_res->cd(ipart*kines.size()+jkine+1);
+            c_res->cd(ipart*kines.size()+jkine+1);
             h_fitres[ipart*kines.size()+jkine]->Fit("gaus",fitopt);
         }
     }
-    Can_pulls->SaveAs("Can_res.pdf");       
+    c_pulls->SaveAs("c_res.pdf");       
 
-    auto Can_sme = new TCanvas("can4","Smearing",900,600);
-    Can_sme->Divide(3,3);
+    auto c_sme = new TCanvas("can4","Smearing",900,600);
+    c_sme->Divide(3,3);
     for (int ipart=0; ipart<parts.size(); ipart++) {
         for (int jkine=0; jkine<kines.size(); jkine++) {
-            Can_sme->cd(ipart*kines.size()+jkine+1);
+            c_sme->cd(ipart*kines.size()+jkine+1);
             h_smeres[ipart*kines.size()+jkine]->Fit("gaus",fitopt);
         }
     }
-    Can_sme->SaveAs("Can_sme.pdf");
+    c_sme->SaveAs("c_sme.pdf");
 */
 }
+
