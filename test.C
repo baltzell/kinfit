@@ -117,7 +117,7 @@ void test()
 
         auto kin = new KinFitter({{target,beam},parts_sme},{},{R[0],R[1],R[2],R[0],R[1],R[2],R[0],R[1],R[2]});
 
-        std::vector<TLorentzVector> finals = kin->GetFinal();
+        std::vector<TLorentzVector> finals = kin->GetFitted4Vectors();
 
         auto missing_gen = target+beam - (parts_gen[0]+parts_gen[1]+parts_gen[2]);
         auto missing_sme = target+beam - (parts_sme[0]+parts_sme[1]+parts_sme[2]);
