@@ -76,7 +76,7 @@ void test()
 
     auto h_chi = new TH1F("h_chi", ";#chi^{2}/ndf", 501, 0, 10);
     auto h_lik = new TH1F("h_lik", ";Confidence Level", 100, 0, 1);
-    auto h_mm_gen = new TH1F("h_mm_gen", ";Missing Mass Squared", 501, -0.3, 0.3);
+    auto h_mm_gen = new TH1F("h_mm_gen", ";Missing Mass [GeV^{2}]", 501, -0.3, 0.3);
     auto h_mm_sme = (TH1*)h_mm_gen->Clone("h_mm_sme");
     auto h_mm_fit = (TH1*)h_mm_gen->Clone("h_mm_fit");
 
@@ -117,30 +117,32 @@ void test()
 
         auto kin = new KinFitter({{target,beam},parts_sme},{},{R[0],R[1],R[2],R[0],R[1],R[2],R[0],R[1],R[2]});
 
+        std::vector<TLorentzVector> finals = kin->GetFinal();
+
         auto missing_gen = target+beam - (parts_gen[0]+parts_gen[1]+parts_gen[2]);
         auto missing_sme = target+beam - (parts_sme[0]+parts_sme[1]+parts_sme[2]);
-        auto missing_fit = target+beam - (kin->Ps_y[0]+kin->Ps_y[1]+kin->Ps_y[2]);
+        auto missing_fit = target+beam - (finals[0]+finals[1]+finals[2]);
 
         h_mm_gen->Fill(missing_gen.M2(), weight);
         h_mm_sme->Fill(missing_sme.M2(), weight);
         h_mm_fit->Fill(missing_fit.M2(), weight);
-        h_chi->Fill(kin->chi2/kin->ndf);
-        h_lik->Fill(kin->confLevel);
+        h_chi->Fill(kin->GetChi2() / kin->GetNDF());
+        h_lik->Fill(kin->GetConfidenceLevel());
 
         for (int ipart=0; ipart<parts.size(); ipart++) {
             for (int jkine=0; jkine<kines.size(); jkine++) {
-                h_pulls[ipart*kines.size()+jkine]->Fill(kin->pulls[ipart*kines.size()+jkine]);
+                h_pulls[ipart*kines.size()+jkine]->Fill(kin->GetPulls()[ipart*kines.size()+jkine]);
             }
-            h_fitres[ipart*3+0]->Fill(kin->Ps_y[ipart].Vect().Mag()-parts_sme[ipart].Vect().Mag());
-            h_fitres[ipart*3+1]->Fill(kin->Ps_y[ipart].Theta()-parts_sme[ipart].Theta());
-            h_fitres[ipart*3+2]->Fill(kin->Ps_y[ipart].Phi()-parts_sme[ipart].Phi());
+            h_fitres[ipart*3+0]->Fill(finals[ipart].Vect().Mag()-parts_sme[ipart].Vect().Mag());
+            h_fitres[ipart*3+1]->Fill(finals[ipart].Theta()-parts_sme[ipart].Theta());
+            h_fitres[ipart*3+2]->Fill(finals[ipart].Phi()-parts_sme[ipart].Phi());
             h_smeres[ipart*3+0]->Fill(parts_gen[ipart].Vect().Mag()-parts_sme[ipart].Vect().Mag());
             h_smeres[ipart*3+1]->Fill(parts_gen[ipart].Theta()-parts_sme[ipart].Theta());
             h_smeres[ipart*3+2]->Fill(parts_gen[ipart].Phi()-parts_sme[ipart].Phi());
         }
     }
 
-    auto Can_missing = new TCanvas("c","Summary",800,800);
+    auto Can_missing = new TCanvas("can1","Summary",800,800);
     Can_missing->Divide(1,3);
     Can_missing->cd(1);
     gPad->SetLogy();
@@ -166,7 +168,7 @@ void test()
     Can_missing->SaveAs("Can_Missing.pdf");
 
     TString fitopt="Q";
-    auto Can_pulls = new TCanvas("cc","Pulls",900,600);
+    auto Can_pulls = new TCanvas("can2","Pulls",900,600);
     Can_pulls->Divide(3,3);
     for (int ipart=0; ipart<parts.size(); ipart++) {
         for (int jkine=0; jkine<kines.size(); jkine++) {
@@ -176,7 +178,8 @@ void test()
     }
     Can_pulls->SaveAs("Can_pulls.pdf");     
 
-    auto Can_res = new TCanvas("ccc","Residuals",900,600);
+/*
+    auto Can_res = new TCanvas("can3","Residuals",900,600);
     Can_res->Divide(3,3);
     for (int ipart=0; ipart<parts.size(); ipart++) {
         for (int jkine=0; jkine<kines.size(); jkine++) {
@@ -186,7 +189,7 @@ void test()
     }
     Can_pulls->SaveAs("Can_res.pdf");       
 
-    auto Can_sme = new TCanvas("cccc","Smearing",900,600);
+    auto Can_sme = new TCanvas("can4","Smearing",900,600);
     Can_sme->Divide(3,3);
     for (int ipart=0; ipart<parts.size(); ipart++) {
         for (int jkine=0; jkine<kines.size(); jkine++) {
@@ -194,5 +197,6 @@ void test()
             h_smeres[ipart*kines.size()+jkine]->Fit("gaus",fitopt);
         }
     }
-    Can_sme->SaveAs("Can_sme.pdf");     
+    Can_sme->SaveAs("Can_sme.pdf");
+*/
 }
