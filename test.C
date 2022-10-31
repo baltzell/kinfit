@@ -9,7 +9,7 @@
 #include "TStyle.h"
 #include "KinFitter.h"
 
-// absolute resolutions (GeV,deg,deg):
+// absolute resolutions (GeV,radians,radians):
 const std::vector<double> RESO = {0.005,0.02,0.02};
 
 TRandom3 rndm3(0);
@@ -60,8 +60,8 @@ void test()
 {
     gStyle->SetOptStat(0);
 
-    const std::vector<double> masses = { 0.938,  0.139,     0.139};//,     0.150, 0.015};
-    const std::vector<TString> parts = {"p",    "#pi^{+}", "#pi^{-}"};//, "#mu", "#mu"};
+    const std::vector<double> masses = { 0.938,  0.139,     0.139,     0.150, 0.015};
+    const std::vector<TString> parts = {"p",    "#pi^{+}", "#pi^{-}", "#mu", "#mu"};
 
     const std::vector<TString> kines = {"P","#theta","#phi"};
     const std::vector<TString> units = {"GeV","rad","rad"};
@@ -104,7 +104,8 @@ void test()
 
         auto weight = event.Generate();
 
-        std::vector<TLorentzVector> parts_gen,parts_sme;
+        std::vector<TLorentzVector> parts_gen;
+        std::vector<TLorentzVector> parts_sme;
 
         for (int ipart=0; ipart<parts.size(); ++ipart) {
             parts_gen.push_back(*(event.GetDecay(ipart)));
@@ -116,7 +117,6 @@ void test()
         }
 
         if (reject) continue;
-
         nevents++;
 
         auto kin = new KinFitter({{target,beam},parts_sme},{},resolutions);
