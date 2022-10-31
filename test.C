@@ -60,8 +60,8 @@ void test()
 {
     gStyle->SetOptStat(0);
 
-    const std::vector<double> masses = { 0.938,  0.139,     0.139};//,     0.150};
-    const std::vector<TString> parts = {"p",    "#pi^{+}", "#pi^{-}"};//, "#mu"};
+    const std::vector<double> masses = { 0.938,  0.139,     0.139};//,     0.150, 0.015};
+    const std::vector<TString> parts = {"p",    "#pi^{+}", "#pi^{-}"};//, "#mu", "#mu"};
 
     const std::vector<TString> kines = {"P","#theta","#phi"};
     const std::vector<TString> units = {"GeV","rad","rad"};
@@ -104,12 +104,12 @@ void test()
 
         auto weight = event.Generate();
 
-        std::vector<TLorentzVector> parts_gen,parts_sme,parts_fit;
+        std::vector<TLorentzVector> parts_gen,parts_sme;
 
         for (int ipart=0; ipart<parts.size(); ++ipart) {
             parts_gen.push_back(*(event.GetDecay(ipart)));
             parts_sme.push_back(ptr_to_genvector(rndm_engine, event.GetDecay(ipart)));
-            if (parts_sme[ipart].Theta()<8*3.14159/180) {
+            if (parts_sme[ipart].Theta()<5*3.14159/180) {
                 reject = true;
                 break;
             }
@@ -121,11 +121,17 @@ void test()
 
         auto kin = new KinFitter({{target,beam},parts_sme},{},resolutions);
 
-        std::vector<TLorentzVector> finals = kin->GetFitted4Vectors();
+        std::vector<TLorentzVector> parts_fit = kin->GetFitted4Vectors();
+        std::cerr<<parts_fit.size();
 
-        auto missing_gen = target+beam - (parts_gen[0]+parts_gen[1]+parts_gen[2]);
-        auto missing_sme = target+beam - (parts_sme[0]+parts_sme[1]+parts_sme[2]);
-        auto missing_fit = target+beam - (finals[0]+finals[1]+finals[2]);
+        auto missing_gen = target+beam;
+        auto missing_sme = target+beam;
+        auto missing_fit = target+beam;
+        for (int ipart=0; ipart<parts.size(); ipart++) {
+            missing_gen -= parts_gen[ipart];
+            missing_sme -= parts_sme[ipart];
+            missing_fit -= parts_fit[ipart];
+        }
 
         h_mm_gen->Fill(missing_gen.M2(), weight);
         h_mm_sme->Fill(missing_sme.M2(), weight);
@@ -137,9 +143,9 @@ void test()
             for (int jkine=0; jkine<kines.size(); jkine++) {
                 h_pulls[ipart*kines.size()+jkine]->Fill(kin->GetPulls()[ipart*kines.size()+jkine]);
             }
-            h_fitres[ipart*3+0]->Fill(finals[ipart].Vect().Mag()-parts_sme[ipart].Vect().Mag());
-            h_fitres[ipart*3+1]->Fill(finals[ipart].Theta()-parts_sme[ipart].Theta());
-            h_fitres[ipart*3+2]->Fill(finals[ipart].Phi()-parts_sme[ipart].Phi());
+            h_fitres[ipart*3+0]->Fill(parts_fit[ipart].Vect().Mag()-parts_sme[ipart].Vect().Mag());
+            h_fitres[ipart*3+1]->Fill(parts_fit[ipart].Theta()-parts_sme[ipart].Theta());
+            h_fitres[ipart*3+2]->Fill(parts_fit[ipart].Phi()-parts_sme[ipart].Phi());
             h_smeres[ipart*3+0]->Fill(parts_gen[ipart].Vect().Mag()-parts_sme[ipart].Vect().Mag());
             h_smeres[ipart*3+1]->Fill(parts_gen[ipart].Theta()-parts_sme[ipart].Theta());
             h_smeres[ipart*3+2]->Fill(parts_gen[ipart].Phi()-parts_sme[ipart].Phi());
