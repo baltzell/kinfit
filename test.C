@@ -10,7 +10,7 @@
 #include "KinFitter.h"
 
 // absolute resolutions (GeV,deg,deg):
-const std::vector<double> R = {0.005,0.02,0.02};
+const std::vector<double> RESO = {0.005,0.02,0.02};
 
 TRandom3 rndm3(0);
 std::random_device rndm_device;
@@ -25,30 +25,30 @@ auto ptr_to_genvector(default_random_engine e, TLorentzVector *v)
     //e=rndm_engine;
 
     // smear by relative resolutions:
-    //std::normal_distribution<double> varP(1.0,R[0]/v->P());
-    //std::normal_distribution<double> varTheta(1.0,R[1]/fabs(v->Theta()));
-    //std::normal_distribution<double> varPhi(1.0,R[2]/fabs(v->Phi()));
+    //std::normal_distribution<double> varP(1.0,RESO[0]/v->P());
+    //std::normal_distribution<double> varTheta(1.0,RESO[1]/fabs(v->Theta()));
+    //std::normal_distribution<double> varPhi(1.0,RESO[2]/fabs(v->Phi()));
     //const double p = varP(e) * v->P();
     //const double t = varTheta(e) * v->Theta();
     //const double h = varPhi(e) * v->Phi();
 
     // smear by absolute resolutions:
-    //std::normal_distribution<double> varP(0.0,R[0]);
-    //std::normal_distribution<double> varTheta(0.0,R[1]);
-    //std::normal_distribution<double> varPhi(0.0,R[2]);
+    //std::normal_distribution<double> varP(0.0,RESO[0]);
+    //std::normal_distribution<double> varTheta(0.0,RESO[1]);
+    //std::normal_distribution<double> varPhi(0.0,RESO[2]);
     //const double p = varP(e) + v->P();
     //const double t = varTheta(e) + v->Theta();
     //const double h = varPhi(e) + v->Phi();
 
     // smear by relative resolutions:
-    //const double p = rndm3.Gaus(1.0,R[0]/v->P()) * v->P();
-    //const double t = rndm3.Gaus(1.0,R[1]/fabs(v->Theta())) * v->Theta();
-    //const double h = rndm3.Gaus(1.0,R[2]/fabs(v->Phi())) * v->Phi();
+    //const double p = rndm3.Gaus(1.0,RESO[0]/v->P()) * v->P();
+    //const double t = rndm3.Gaus(1.0,RESO[1]/fabs(v->Theta())) * v->Theta();
+    //const double h = rndm3.Gaus(1.0,RESO[2]/fabs(v->Phi())) * v->Phi();
 
     // smear by absolute resolutions:
-    const double p = rndm3.Gaus(0.0,R[0]) + v->P();
-    const double t = rndm3.Gaus(0.0,R[1]) + v->Theta();
-    const double h = rndm3.Gaus(0.0,R[2]) + v->Phi();
+    const double p = rndm3.Gaus(0.0,RESO[0]) + v->P();
+    const double t = rndm3.Gaus(0.0,RESO[1]) + v->Theta();
+    const double h = rndm3.Gaus(0.0,RESO[2]) + v->Phi();
 
     const double m = v->M();
     TLorentzVector v_out;
@@ -60,8 +60,9 @@ void test()
 {
     gStyle->SetOptStat(0);
 
-    const std::vector<double> masses = {0.938, 0.139, 0.139};
-    const std::vector<TString> parts = {"p","#pi^{+}","#pi^{-}"};
+    const std::vector<double> masses = { 0.938,  0.139,     0.139};//,     0.150};
+    const std::vector<TString> parts = {"p",    "#pi^{+}", "#pi^{-}"};//, "#mu"};
+
     const std::vector<TString> kines = {"P","#theta","#phi"};
     const std::vector<TString> units = {"GeV","rad","rad"};
 
@@ -76,19 +77,21 @@ void test()
 
     auto h_chi = new TH1F("h_chi", ";#chi^{2}/ndf", 501, 0, 10);
     auto h_lik = new TH1F("h_lik", ";Confidence Level", 100, 0, 1);
-    auto h_mm_gen = new TH1F("h_mm_gen", ";Missing Mass [GeV^{2}]", 501, -0.3, 0.3);
+    auto h_mm_gen = new TH1F("h_mm_gen", ";Missing Mass [GeV^{2}]", 501, -0.5*(parts.size()-1), 0.5*(parts.size()-1));
     auto h_mm_sme = (TH1*)h_mm_gen->Clone("h_mm_sme");
     auto h_mm_fit = (TH1*)h_mm_gen->Clone("h_mm_fit");
 
     std::vector<TH1*> h_pulls,h_fitres,h_smeres;
+    std::vector<double> resolutions;
     for (int i=0; i<parts.size(); i++) {
         for (int j=0; j<kines.size(); j++) {
+            resolutions.push_back(RESO[j]);
             h_pulls.push_back(new TH1F(Form("h_pulls_%d_%d",i,j),
                         Form(";%s_{%s} Pull",parts[i].Data(),kines[j].Data()),201,-10,10));
             h_fitres.push_back(new TH1F(Form("h_fitres_%d_%d",i,j),
-                        Form(";%s_{%s} Residual [%s]",parts[i].Data(),kines[j].Data(),units[i].Data()),201,-R[j]*10,R[j]*10));
+                        Form(";%s_{%s} Residual [%s]",parts[i].Data(),kines[j].Data(),units[i].Data()),201,-RESO[j]*10,RESO[j]*10));
             h_smeres.push_back(new TH1F(Form("h_smeres_%d_%d",i,j),
-                        Form(";%s_{%s} Smearing [%s]",parts[i].Data(),kines[j].Data(),units[i].Data()),201,-R[j]*10,R[j]*10));
+                        Form(";%s_{%s} Smearing [%s]",parts[i].Data(),kines[j].Data(),units[i].Data()),201,-RESO[j]*10,RESO[j]*10));
         }
     }
 
@@ -102,6 +105,7 @@ void test()
         auto weight = event.Generate();
 
         std::vector<TLorentzVector> parts_gen,parts_sme,parts_fit;
+
         for (int ipart=0; ipart<parts.size(); ++ipart) {
             parts_gen.push_back(*(event.GetDecay(ipart)));
             parts_sme.push_back(ptr_to_genvector(rndm_engine, event.GetDecay(ipart)));
@@ -115,7 +119,7 @@ void test()
 
         nevents++;
 
-        auto kin = new KinFitter({{target,beam},parts_sme},{},{R[0],R[1],R[2],R[0],R[1],R[2],R[0],R[1],R[2]});
+        auto kin = new KinFitter({{target,beam},parts_sme},{},resolutions);
 
         std::vector<TLorentzVector> finals = kin->GetFitted4Vectors();
 
@@ -168,8 +172,8 @@ void test()
     c_missing->SaveAs("c_Missing.pdf");
 
     TString fitopt="Q";
-    auto c_pulls = new TCanvas("can2","Pulls",900,600);
-    c_pulls->Divide(3,3);
+    auto c_pulls = new TCanvas("can2","Pulls",int(float(900)*parts.size()/3),600);
+    c_pulls->Divide(3,parts.size());
     for (int ipart=0; ipart<parts.size(); ipart++) {
         for (int jkine=0; jkine<kines.size(); jkine++) {
             c_pulls->cd(ipart*kines.size()+jkine+1);
