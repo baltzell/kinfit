@@ -10,6 +10,8 @@
 
 #include "KinParticle.h"
 #include "KinConstraint_EnergyMomentum.h"
+#include "KinConstraint_InvMass.h"
+
 
 
 
@@ -63,6 +65,7 @@ private:
 
 public:
     virtual ~KinFitter() {}
+
     KinFitter() {}
 
 public:
@@ -90,7 +93,7 @@ public:
 
         }
 
-        _nconstraints = 4;
+        
 
         _ndf = 4;
 
@@ -105,7 +108,6 @@ public:
         TMatrixDDiag diag(_C_eta);
         _sigma2_etas.ResizeTo(_nvars_y);
         _sigma2_etas = diag;
-        //_sigma2_etas.Sqr();
 
         Init4Vects();
     }
@@ -113,7 +115,15 @@ public:
     void Add_EnergyMomentum_Constraint(std::vector<int> index_P_Cons)
     {
             KinConstraint_EnergyMomentum *in_Cons = new KinConstraint_EnergyMomentum(index_P_Cons);
-            _Cons.push_back(in_Cons);            
+            _Cons.push_back(in_Cons);    
+            _nconstraints = 4;        
+    }
+
+    void Add_InvMass_Constraint(std::vector<int> index_P_Cons, double in_mass)
+    {
+            KinConstraint_InvMass *in_Cons = new KinConstraint_InvMass(index_P_Cons, in_mass);
+            _Cons.push_back(in_Cons); 
+            _nconstraints = 1;           
     }
 
     // Main, Default Fitter
@@ -323,7 +333,7 @@ private:
     void SetB()
     {
         _B.ResizeTo(_nconstraints, _nvars_y);
-        _B = _Cons[0]->constructDMatrix(get4Vectors(&_y, _masses_y));//(&_y, _masses_y);
+        _B=_Cons[0]->constructDMatrix(get4Vectors(&_y, _masses_y));//(&_y, _masses_y);
 
         //_B = constructDerMatrix(&_y, _masses_y);
     }

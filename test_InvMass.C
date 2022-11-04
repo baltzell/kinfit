@@ -11,7 +11,7 @@
 #include "KinParticle.h"
 
 // absolute resolutions (GeV,radians,radians):
-const std::vector<double> RESO = {0.1, 0.02, 0.02};
+const std::vector<double> RESO = {0.005, 0.02, 0.02};
 
 TRandom3 rndm3(0);
 std::random_device rndm_device;
@@ -30,29 +30,28 @@ auto ptr_to_genvector(default_random_engine e, TLorentzVector *v)
     return v_out;
 };
 
-void test()
+void test_InvMass()
 {
     gStyle->SetOptStat(0);
     gStyle->SetOptFit(1111);
 
-    const std::vector<double> masses = {0.938, 0.139, 0.139, 0.150, 0.015};
-    const std::vector<TString> parts = {"p", "#pi^{+}", "#pi^{-}", "#mu", "#mu"};
+    const std::vector<double> masses = {0.005, 0.005};
+    const std::vector<TString> parts = {"e", "e"};
 
     const std::vector<TString> kines = {"P", "#theta", "#phi"};
     const std::vector<TString> units = {"GeV", "rad", "rad"};
 
-    TLorentzVector target(0.0, 0.0, 0.0, 0.938);
-    TLorentzVector beam(0.0, 0.0, 10.6, 10.6);
-    TLorentzVector W = beam + target;
+    TLorentzVector JPsi; 
+    JPsi.SetXYZM(0.0, 0.0, 5., 3.);
     TGenPhaseSpace event;
-    event.SetDecay(W, masses.size(), &masses[0]);
+    event.SetDecay(JPsi, masses.size(), &masses[0]);
 
     // std::random_device rndm_device;
     // std::default_random_engine rndm_engine(rndm_device());
 
     auto h_chi = new TH1F("h_chi", ";#chi^{2}/ndf", 501, 0, 10);
     auto h_lik = new TH1F("h_lik", ";Confidence Level", 100, 0, 1);
-    auto h_mm_gen = new TH1F("h_mm_gen", ";Missing Mass [GeV^{2}]", 501, -0.5 * (parts.size() - 1), 0.5 * (parts.size() - 1));
+    auto h_mm_gen = new TH1F("h_mm_gen", ";Mass [GeV^{2}]", 501, 2.5, 3.5);
     auto h_mm_sme = (TH1 *)h_mm_gen->Clone("h_mm_sme");
     auto h_mm_fit = (TH1 *)h_mm_gen->Clone("h_mm_fit");
 
@@ -73,7 +72,7 @@ void test()
     }
 
     int nevents = 0;
-    while (nevents < 1000)
+    while (nevents < 10000)
     {
         bool reject = false;
 
@@ -93,11 +92,11 @@ void test()
 
             kin_parts_sme.push_back(KinParticle(ptr_to_genvector(rndm_engine, event.GetDecay(ipart)), RESO));
 
-            if (parts_sme[ipart].Theta() < 5 * 3.14159 / 180)
+            /*if (parts_sme[ipart].Theta() < 5 * 3.14159 / 180)
             {
                 reject = true;
                 break;
-            }
+            }*/
         }
 
         if (reject)
@@ -105,32 +104,34 @@ void test()
         nevents++;
 
         auto kin = new KinFitter();
-        kin->SetInitial({KinParticle(target), KinParticle(beam)});
+        
+        kin->SetInitial({KinParticle(JPsi)});
         kin->SetFinal(kin_parts_sme);
-
-        kin->Add_EnergyMomentum_Constraint({0, 1, 2, 3, 4});
+        kin->Add_InvMass_Constraint({0, 1},3.0);
 
         kin->DoFitting(10);
 
-       // auto kin = new KinFitter({{target,beam},parts_sme},resolutions);
+        //auto kin = new KinFitter({{target,beam},parts_sme},resolutions);
         //kin->DoFitting();
 
         std::vector<TLorentzVector> parts_fit = kin->GetFitted4Vectors();
+        //std::vector<TLorentzVector> parts_fit = parts_sme;
+
         // std::cerr<<parts_fit.size();
 
-        auto missing_gen = target + beam;
-        auto missing_sme = target + beam;
-        auto missing_fit = target + beam;
+        TLorentzVector JPsi_gen(0,0,0,0);
+        TLorentzVector JPsi_sme(0,0,0,0);
+        TLorentzVector JPsi_fit(0,0,0,0);
         for (int ipart = 0; ipart < parts.size(); ipart++)
         {
-            missing_gen -= parts_gen[ipart];
-            missing_sme -= parts_sme[ipart];
-            missing_fit -= parts_fit[ipart];
+            JPsi_gen += parts_gen[ipart];
+            JPsi_sme += parts_sme[ipart];
+            JPsi_fit += parts_fit[ipart];
         }
 
-        h_mm_gen->Fill(missing_gen.M2(), weight);
-        h_mm_sme->Fill(missing_sme.M2(), weight);
-        h_mm_fit->Fill(missing_fit.M2(), weight);
+        h_mm_gen->Fill(JPsi_gen.M(), weight);
+        h_mm_sme->Fill(JPsi_sme.M(), weight);
+        h_mm_fit->Fill(JPsi_fit.M(), weight);
         h_chi->Fill(kin->GetChi2() / kin->GetNDF());
         h_lik->Fill(kin->GetConfidenceLevel());
 
@@ -172,7 +173,7 @@ void test()
     gPad->SetLogy();
     h_lik->Draw();
 
-    c_missing->SaveAs("c_Missing.pdf");
+    c_missing->SaveAs("c_Missing_inv.pdf");
 
     TString fitopt = "Q";
     auto c_pulls = new TCanvas("can2", "Pulls",  900 , int(float(1200) * parts.size() / 3));
@@ -183,7 +184,7 @@ void test()
             h_pulls[ipart*kines.size()+jkine]->Fit("gaus",fitopt);
         }
     }
-    c_pulls->SaveAs("c_pulls.pdf");
+    c_pulls->SaveAs("c_pulls_inv.pdf");
 
     
         auto c_res = new TCanvas("can3","Residuals",900,600);
@@ -194,7 +195,7 @@ void test()
                 h_fitres[ipart*kines.size()+jkine]->Fit("gaus",fitopt);
             }
         }
-        c_pulls->SaveAs("c_res.pdf");
+        c_pulls->SaveAs("c_res_inv.pdf");
 
         auto c_sme = new TCanvas("can4","Smearing",900,600);
         c_sme->Divide(3,3);
@@ -204,6 +205,6 @@ void test()
                 h_smeres[ipart*kines.size()+jkine]->Fit("gaus",fitopt);
             }
         }
-        c_sme->SaveAs("c_sme.pdf");
+        c_sme->SaveAs("c_sme_inv.pdf");
     
 }

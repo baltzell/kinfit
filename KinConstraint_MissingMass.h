@@ -11,34 +11,27 @@ public:
 
     KinConstraint_MissingMass(std::vector<int> index_in_parts)
     {
-        index_Cons_Particles=index_in_parts;
+        index_Cons_Particles = index_in_parts;
         _nconstraints = 1;
     }
 
-    TVectorD getConstraint( std::vector<TLorentzVector>_p_init_vector, std::vector<TLorentzVector> _p_fin_vector) override
+    TVectorD getConstraint(std::vector<TLorentzVector> _p_init_vector, std::vector<TLorentzVector> _p_fin_vector) override
     {
         TVectorD _c;
         _c.ResizeTo(_nconstraints);
-       
-        TLorentzVector _p_fin = TLorentzVector(0, 0, 0, 0);
-        for (auto P : _p_fin_vector)
-            _p_fin += P;
 
-        TLorentzVector _p_init = TLorentzVector(0, 0, 0, 0);
-        for (auto P : _p_init_vector)
-            _p_init += P;
+        TLorentzVector _p_miss = TLorentzVector(0, 0, 0, 0);
 
-        TLorentzVector _p_diff = _p_init - _p_fin;
+        for (auto idx : index_Cons_Particles)
+            _p_miss += _p_fin_vector[idx];
+        for (auto p_in : _p_init_vector)
+            _p_miss += p_in;
 
-        for (Int_t ii = 0; ii < 4; ii++)
-        {
-            _c[ii] = _p_diff[ii];
-        }
-
+        _c[]=_p_miss.M();
         return _c;
     }
 
-    TMatrixD getDfDx(KinParticle _part) override 
+    TMatrixD getDfDx(int idx_part, std::vector<TLorentzVector> _particles) override 
     {
         Double_t theta = _part._vector.Theta();
         Double_t phi = _part._vector.Phi();
@@ -47,16 +40,13 @@ public:
 
         Int_t nvars = 3;
 
-        Double_t data[4][3] = {};
-
-       
+        Double_t data[1][3] = {};
 
         TMatrixD dfdx(_nconstraints, nvars, *data);
 
         dfdx *= -1.;
         return dfdx;
     }
-
 };
 
 #endif

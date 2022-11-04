@@ -38,12 +38,14 @@ public:
         return _c;
     }
 
-    TMatrixD getDfDx(KinParticle _part) override 
+    TMatrixD getDfDx(int idx_part, std::vector<TLorentzVector> _particles) override 
     {
-        Double_t theta = _part._vector.Theta();
-        Double_t phi = _part._vector.Phi();
-        Double_t p = _part._vector.P();
-        Double_t E = _part._vector.E();
+
+
+        Double_t theta = _particles[idx_part].Theta();
+        Double_t phi = _particles[idx_part].Phi();
+        Double_t p = _particles[idx_part].P();
+        Double_t E = _particles[idx_part].E();
 
         Int_t nvars = 3;
 
