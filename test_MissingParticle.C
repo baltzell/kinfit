@@ -11,7 +11,7 @@
 #include "KinParticle.h"
 
 // absolute resolutions (GeV,radians,radians):
-const std::vector<double> RESO = {0.02,0.12,0.12};
+const std::vector<double> RESO = {0.22,0.02,0.02};
 
 TRandom3 rndm3(0);
 std::random_device rndm_device;
@@ -30,7 +30,7 @@ auto ptr_to_genvector(default_random_engine e, TLorentzVector *v)
     return v_out;
 };
 
-void test()
+void test_MissingPart()
 {
     gStyle->SetOptStat(0);
     gStyle->SetOptFit(1111);
@@ -60,18 +60,6 @@ void test()
     auto h_E_gen = new TH1F("h_E_gen", ";E [GeV^{2}]", 501, -0.5 * (parts.size() - 1), 0.5 * (parts.size() - 1));
     auto h_E_sme = (TH1 *)h_E_gen->Clone("h_E_sme");
     auto h_E_fit = (TH1 *)h_E_gen->Clone("h_E_fit");
-
-    /*auto h_Px_gen = new TH1F("h_Px_gen", ";Px [GeV^{2}]", 501, -0.5 * (parts.size() - 1), 0.5 * (parts.size() - 1));
-    auto h_Px_sme = (TH1 *)h_Px_gen->Clone("h_Px_sme");
-    auto h_Px_fit = (TH1 *)h_Px_gen->Clone("h_Px_fit");
-
-    auto h_E_gen = new TH1F("h_E_gen", ";E [GeV^{2}]", 501, -0.5 * (parts.size() - 1), 0.5 * (parts.size() - 1));
-    auto h_E_sme = (TH1 *)h_E_gen->Clone("h_E_sme");
-    auto h_E_fit = (TH1 *)h_E_gen->Clone("h_E_fit");
-
-    auto h_E_gen = new TH1F("h_E_gen", ";E [GeV^{2}]", 501, -0.5 * (parts.size() - 1), 0.5 * (parts.size() - 1));
-    auto h_E_sme = (TH1 *)h_E_gen->Clone("h_E_sme");
-    auto h_E_fit = (TH1 *)h_E_gen->Clone("h_E_fit");*/
 
     std::vector<TH1 *> h_pulls, h_fitres, h_smeres, h_fitgen;
     std::vector<double> resolutions;
@@ -127,9 +115,9 @@ void test()
         kin->SetInitial({KinParticle(target), KinParticle(beam)});
         kin->SetFinal(kin_parts_sme);
 
-        kin->Add_EnergyMomentum_Constraint({0, 1, 2, 3, 4});
+        kin->Add_MissingMass_Constraint({1, 2, 3, 4},0.938);
 
-        kin->DoFitting(100);
+        kin->DoFitting(20);
 
        // auto kin = new KinFitter({{target,beam},parts_sme},resolutions);
         //kin->DoFitting();

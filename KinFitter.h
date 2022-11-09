@@ -11,13 +11,11 @@
 #include "KinParticle.h"
 #include "KinConstraint_EnergyMomentum.h"
 #include "KinConstraint_InvMass.h"
-
-
-
+#include "KinConstraint_MissingMass.h"
 
 class KinFitter
 {
-    // For now, these methods use the nomenclature in Mike Williams' 2004 analysis note
+    // For now, these methods use the nomenclature in Mike Williams' 2003 analysis note
 
 public:
     double GetConfidenceLevel() { return _confLevel; }
@@ -39,6 +37,7 @@ private:
     TVectorD _eta;
     TVectorD _sigma2_etas;
     TMatrixD _C_eta;
+    TMatrixD _C_eta_Inv;
     TVectorD _y;
     TVectorD _sigma2_ys;
     TMatrixD _C_y;
@@ -49,19 +48,20 @@ private:
     std::vector<Double_t> _masses_y;   // Probably won't need
     std::vector<TLorentzVector> _Ps_y; // Probably the only things that need to be public
 
-    TMatrixD _A;
     TMatrixD _B;
+    TMatrixD _previous_B;
 
-    TVectorD _ccccc;
+    TVectorD _c;
     TLorentzVector _P_init;
     TLorentzVector _P_fin;
     TLorentzVector _Pdiff;
 
     TMatrixD _C_B;
+    TMatrixD _previous_C_B;
     TVectorD _mu;
     TMatrixD _C_x;
 
-    std::vector<KinConstraint*> _Cons;   
+    std::vector<KinConstraint *> _Cons;
 
 public:
     virtual ~KinFitter() {}
@@ -71,42 +71,45 @@ public:
 public:
     void SetInitial(std::vector<KinParticle> in_P_initial)
     {
-        for (auto& in_P : in_P_initial)
+        for (auto &in_P : in_P_initial)
         {
             _P_inits.push_back(in_P.GetVector());
         }
     }
 
-   void SetFinal(std::vector<KinParticle> in_P_final)
+    void SetFinal(std::vector<KinParticle> in_P_final)
     {
         _nvars_y = 3 * in_P_final.size();
         TMatrixD C_n(_nvars_y, _nvars_y);
 
         int idx = 0;
-        for (auto& in_P : in_P_final)
+        for (auto &in_P : in_P_final)
         {
             _Ps_y.push_back(in_P.GetVector());
             TMatrixD C_in_P = in_P.GetCovMatrix();
-            TMatrixDSub(C_n,0+3*idx,2+3*idx,0+3*idx,2+3*idx) = C_in_P; //Create block diagonal matrix with covariances
+            TMatrixDSub(C_n, 0 + 3 * idx, 2 + 3 * idx, 0 + 3 * idx, 2 + 3 * idx) = C_in_P; // Create block diagonal matrix with covariances
 
             idx++;
-
         }
-
-        
-
-        _ndf = 4;
 
         _y.ResizeTo(_nvars_y);
         _eta.ResizeTo(_nvars_y);
-
+        _delta.ResizeTo(_nvars_y);
+        _epsilon.ResizeTo(_nvars_y);
+        _pulls.ResizeTo(_nvars_y);
         _sigma2_ys.ResizeTo(_nvars_y);
-
         _C_eta.ResizeTo(_nvars_y, _nvars_y);
+        _C_eta_Inv.ResizeTo(_nvars_y, _nvars_y);
+        _sigma2_etas.ResizeTo(_nvars_y);
+        _C_y.ResizeTo(_C_eta);
+
         _C_eta = C_n;
 
+        _C_eta_Inv = _C_eta;
+        _C_eta_Inv.SetTol(1.e-30); 
+        _C_eta_Inv.Invert();     
+
         TMatrixDDiag diag(_C_eta);
-        _sigma2_etas.ResizeTo(_nvars_y);
         _sigma2_etas = diag;
 
         Init4Vects();
@@ -114,119 +117,143 @@ public:
 
     void Add_EnergyMomentum_Constraint(std::vector<int> index_P_Cons)
     {
-            KinConstraint_EnergyMomentum *in_Cons = new KinConstraint_EnergyMomentum(index_P_Cons);
-            _Cons.push_back(in_Cons);    
-            _nconstraints = 4;        
+        KinConstraint_EnergyMomentum *in_Cons = new KinConstraint_EnergyMomentum(index_P_Cons);
+        _Cons.push_back(in_Cons);
+        _nconstraints = 4;
+        _ndf = 4;
     }
 
     void Add_InvMass_Constraint(std::vector<int> index_P_Cons, double in_mass)
     {
-            KinConstraint_InvMass *in_Cons = new KinConstraint_InvMass(index_P_Cons, in_mass);
-            _Cons.push_back(in_Cons); 
-            _nconstraints = 1;           
+        KinConstraint_InvMass *in_Cons = new KinConstraint_InvMass(index_P_Cons, in_mass);
+        _Cons.push_back(in_Cons);
+        _nconstraints = 1;
+        _ndf = 1;
+    }
+
+    void Add_MissingMass_Constraint(std::vector<int> index_P_Cons, double in_mass)
+    {
+        KinConstraint_MissingMass *in_Cons = new KinConstraint_MissingMass(index_P_Cons, in_mass);
+        _Cons.push_back(in_Cons);
+        _nconstraints = 1;
+        _ndf = 1;
     }
 
     // Main, Default Fitter
-    void DoFitting(int in_nter=100)
+    void DoFitting(int in_nter = 100)
     {
-        nter=in_nter;
 
-        TMatrixD *AA = nullptr; // To be address of A
+        _chi2 = 10000; //Set chi2 to a high value
+
         Int_t iter = 0;
+        Int_t iter_inc = 0;
         while (iter < nter)
-        { // ... or some other conditions; I ain't your boss.
-            SetB();
-            SetC();
+        {
 
-            ProcessFit(&_B, AA, &_ccccc);
-            _Ps_y = get4Vectors(&_y, _masses_y);
-
-            _epsilon += _delta;
+            double alpha = 1.0; //*(4.*(float)nter-(float)iter)/(4.*(float)nter);//iter_inc>0 ? 0.3 : 1.; //
             Double_t chi20 = _chi2;
-            SetChi2();
 
-            // if( abs(_chi2 - chi20)/chi20 < 0.01 ){
+            ProcessFit(alpha);
+
             if (_chi2 - chi20 > 0.)
+                iter_inc++; // Need to define proper stop conditions
+
+            if (_chi2 - chi20 < 0. && iter > 0)
+                iter_inc=0; // Need to define proper stop conditions
+
+            if (iter_inc > 1)
+            {
+                if (iter > 0)
+                {
+                    cout << "stop: chi2 increasing after "<<iter<<" iterations \n";
+                    cout << _chi2 <<" "<<chi20<< '\n';
+                    UndoFit(alpha); // This is used to undo the previous fit as the chi2 is increasing
+                    cout <<"after undo "<< _chi2 <<" "<<chi20<< '\n';
+                    break;
+                }
+            }
+
+             if (abs(_chi2 - chi20) / chi20 < 0.001 )
             {
                 if (iter > 0)
                 {
                     break;
                 }
             }
-            
-            ++iter;
+
+            iter++;
         }
 
         PostProcess();
     }
 
 private:
-    void Initialize(std::vector<Double_t> sigmas, TMatrixD *C_n = nullptr, TMatrixD *corrMat = nullptr)
+    void ProcessFit(double alpha)
     {
-        _ndf = abs(_nconstraints);
 
-        _y.ResizeTo(_nvars_y);
-        _eta.ResizeTo(_nvars_y);
+        _B.ResizeTo(_nconstraints, _nvars_y); // should be moved outside this method when ready
+        _previous_B.ResizeTo(_nconstraints, _nvars_y);
+        _C_B.ResizeTo(_nconstraints, _nconstraints);
+        _previous_C_B.ResizeTo(_nconstraints, _nconstraints);
+        _c.ResizeTo(_nconstraints);
 
-        _sigma2_ys.ResizeTo(_nvars_y);
-        _C_eta.ResizeTo(_nvars_y, _nvars_y);
+        _previous_C_B = _C_B; //Used to store the previous fit
+        _previous_B = _B;
 
-        // Set up Covariance matrix
-        if (C_n == 0)
-        {
-            // If a covariance matrix is not given, build the covariance matrix from sigmas
-            InitErrors(sigmas, corrMat);
-        }
-        else
-        {
-            _C_eta = *C_n;
-            TMatrixDDiag diag(_C_eta);
+        _B = _Cons[0]->constructDMatrix(get4Vectors(&_y, _masses_y)); // should be moved outside this method when ready
+        _c = _Cons[0]->getConstraint(_P_inits, get4Vectors(&_y, _masses_y));
 
-            // Get variance from diagonal of covariance matrix
-            _sigma2_etas.ResizeTo(_nvars_y);
-            _sigma2_etas = diag;
-        }
+        TMatrixD BT = _B;
+        BT.T();
+
+       
+        _C_B = _B * _C_eta * BT;
+        _C_B.SetTol(1.e-30); // Set tolerance to be much lower for inverted matrix
+        _C_B.Invert();
+
+        _delta = _C_eta * BT * _C_B * _c;
+        _delta *= -1;
+        _y += alpha * _delta;
+        _epsilon += _delta;
+
+        TVectorD pre_chi2 = _C_eta_Inv * _epsilon;
+        _chi2 = _epsilon * pre_chi2;
     }
 
-    void InitErrors(std::vector<Double_t> sigmas, TMatrixD *corrMat)
+    void UndoFit(double alpha)
     {
-        // Initialize Errors
-        TVectorD sigma_etas(sigmas.size());
-        for (Int_t ii = 0; ii < sigmas.size(); ++ii)
-        {
-            sigma_etas[ii] = sigmas[ii];
-        }
+        _y -= alpha * _delta;
+        _epsilon -= _delta;
 
-        _sigma2_etas.ResizeTo(_nvars_y);
-        _sigma2_etas = sigma_etas;
-        _sigma2_etas.Sqr();
+        TVectorD pre_chi2 = _C_eta_Inv * _epsilon;
+        _chi2 = _epsilon * pre_chi2;
 
-        SetCovMat(corrMat);
+        _C_B = _previous_C_B;
+
+        _B = _previous_B;
     }
 
-    void SetCovMat(TMatrixD *corrMat = nullptr)
+    void PostProcess()
     {
-        if (corrMat == 0)
-        {
-            //// Variance is sigma^2
-            TMatrixDDiag diag(_C_eta);
-            diag = _sigma2_etas;
-        }
-        else
-        {
-            // I don't think there's a way to do vec^T * Mat * vec so here's a loop:
-            TMatrixD rho = *corrMat;
-            TVectorD sigmas = _sigma2_etas;
-            sigmas.Sqrt();
-            Int_t n = _sigma2_etas.GetNrows();
-            for (Int_t ii = 0; ii < n; ++ii)
-            {
-                for (Int_t jj = 0; jj < n; ++jj)
-                {
-                    _C_eta[ii][jj] = sigmas[ii] * rho[ii][jj] * sigmas[jj];
-                }
-            }
-        }
+
+        // Set Confidence level
+        _confLevel = TMath::Prob(_chi2, _ndf);
+
+        // Set pulls
+        TMatrixD BT = _B;
+        BT.T();
+        _C_y = _C_eta;
+        _C_y -= _C_eta * BT * _C_B * _B * _C_eta;
+
+        TVectorD num = _epsilon;
+        TMatrixDDiag diag(_C_y);
+        _sigma2_ys = diag;
+        TVectorD denom = _sigma2_etas - _sigma2_ys;
+        denom.Sqrt();
+        _pulls = ElementDiv(num, denom);
+
+        // Set final vector - should be changed at some point
+        _Ps_y = get4Vectors(&_y, _masses_y);
     }
 
     void Init4Vects()
@@ -237,196 +264,11 @@ private:
         for (auto P : _Ps_y)
             _masses_y.push_back(P.M());
 
-        _y.ResizeTo(3 * _Ps_y.size());
-        _eta.ResizeTo(_y);
-
         _y = constructTVecFrom4Vecs(_Ps_y);
         _eta = _y;
-        _epsilon.ResizeTo(_eta);
     }
 
-    // ---------------------------------------------------------------------------------------------------------------------------------
-    // Methods
-    // ---------------------------------------------------------------------------------------------------------------------------------
-
-    // ---------------------------------------------------------------------------------------------------------------------------------
-    // Setters : Construct needed Vector and Matrices
-    // ---------------------------------------------------------------------------------------------------------------------------------
-
-    void SetDelta()
-    {
-        // Construct delta ( = -_C_eta B^T C_B(  c + A xi ) = -_C_eta B^T * mu )
-        _delta.ResizeTo(_y);
-
-        TMatrixD BT = _B;
-        BT.T();
-
-        TMatrixD D = _C_eta * BT;
-
-        SetMu();
-
-        _delta = D * _mu;
-        _delta *= -1;
-    }
-
-    void SetMu()
-    {
-        // Construct mu ( = C_B(  c + A xi )  )
-        _mu.ResizeTo(_ccccc);
-        _mu = _ccccc;
-
-        SetC_B();
-
-        _mu *= _C_B;
-    }
-
-    void SetC_B()
-    {
-        // Maybe implement a similarity transformation : B C B^T and B^T C B
-        // Construct Matrix C_B ( = inverse(B _C_eta B^T) )
-        TMatrixD BT = _B;
-        BT.T();
-
-        _C_B.ResizeTo(_B.GetNrows(), _B.GetNrows());
-        _C_B = _B * _C_eta * BT;
-        _C_B.SetTol(1.e-30); // Set tolerance to be much lower for inverted matrix
-        _C_B.Invert();
-    }
-
-    void SetC_y()
-    {
-        // Returns the new covariance matrix from propagation of errors
-        // Get Error in fit results: C_y ( = _C_eta - _C_eta B^T C_B B _C_eta + _C_eta B^T C_B A inverse( A^T C_B A ) A^T C_B B _C_eta = _C_eta - _C_eta B^T C_B B _C_eta + _C_eta B^T C_B A C_x A^T C_B B _C_eta)
-        _C_y.ResizeTo(_C_eta);
-
-        TMatrixD BT = _B;
-        BT.T();
-
-        TMatrixD C_y1 = _C_eta * BT * _C_B;
-        TMatrixD C_y2 = C_y1 * _B * _C_eta;
-
-        // Documentation recommended to add matrices this way
-        _C_y = _C_eta;
-        _C_y -= C_y2;
-
-        if (_A.GetNrows() != 0)
-        {
-            TMatrixD AT = _A;
-            _A.T();
-            TMatrixD C_y3 = C_y1 * _A * _C_x * AT * _C_B * _B * _C_eta;
-            _C_y += C_y3;
-        }
-    }
-
-    void SetB(TMatrixD *BB)
-    {
-        _B.ResizeTo(*BB);
-        _B = *BB;
-    }
-
-    void SetC(TVectorD *cc)
-    {
-        _ccccc.ResizeTo(*cc);
-        _ccccc = *cc;
-    }
-
-    void SetB()
-    {
-        _B.ResizeTo(_nconstraints, _nvars_y);
-        _B=_Cons[0]->constructDMatrix(get4Vectors(&_y, _masses_y));//(&_y, _masses_y);
-
-        //_B = constructDerMatrix(&_y, _masses_y);
-    }
-
-    void SetC()
-    {
-        _ccccc.ResizeTo(_nconstraints);
-
-        _ccccc=_Cons[0]->getConstraint(_P_inits,_Ps_y);
-
-       
-    }
-
-    void ProcessFit(TMatrixD *BB, TMatrixD *AA, TVectorD *cc)
-    {
-        _ccccc.ResizeTo(*cc);
-        _B.ResizeTo(*BB);
-
-        _ccccc = *cc; // Just in case these come from outside the class
-        _B = *BB;     // Just in case these come from outside the class
-
-        SetDelta();
-
-        _y += _delta;
-    }
-
-    void PostProcess()
-    {
-        // Get change of new fit results (y):  epsilon ( eta - y ) !! Probably won't need
-        //_epsilon -= y;
-
-        SetChi2();
-
-        SetConfLevel();
-
-        // Correlations Matrix
-        SetC_y();
-        _sigma2_ys = TMatrixDDiag(_C_y);
-
-        SetPulls();
-    }
-
-    // ---------------------------------------------------------------------------------------------------------------------------------
-    // Postfit
-    // ---------------------------------------------------------------------------------------------------------------------------------
-
-    void SetChi2()
-    {
-        // For a kinematic fit, this should follow a chi^2 distribution
-        // Construct chi^2 ( = epsilon^T inverse(_C_eta) epsilon = epsilon . epsilon')
-
-        TVectorD eps0 = _epsilon;
-
-        TMatrixD C_nI = _C_eta;
-        C_nI.SetTol(1.e-30); // Set tolerance to be much lower for inverted matrix
-        C_nI.Invert();
-
-        TVectorD eps1 = C_nI * eps0;
-
-        _chi2 = eps0 * eps1;
-    }
-
-    void SetConfLevel()
-    {
-        // Returns confidence level for a given chi^2 (chi2) and number of degrees of freedom (ndf)
-        _confLevel = TMath::Prob(_chi2, _ndf);
-    }
-
-    void SetPulls()
-    {
-        // Returns a vector of pull distributions
-        // Get pulls z_i ( = [ eta_i - y_i ] / sqrt( sigma^2_eta_i - sigma^2_y_i )
-        _pulls.ResizeTo(_eta);
-
-        TVectorD num = _epsilon;
-
-        //cout<<_sigma2_etas[0]<<" "<<_sigma2_etas[1]<<" "<<_sigma2_etas[2]<<" "<<_sigma2_etas[3]<<" "<<endl;
-        //_sigma2_etas.Draw();
-
-        TVectorD denom = _sigma2_etas - _sigma2_ys;
-        // TVectorD denom = _sigma2_etas;
-
-        denom.Abs();  // !!! Probably don't need! In case sigmas2_y < sigmas2_n
-        denom.Sqrt(); // Element-wise square root!
-
-        _pulls = ElementDiv(num, denom); // Element-wise division!
-    }
-
-    // ---------------------------------------------------------------------------------------------------------------------------------
-    // These methods are on the bottom because they are very specfic. The rest should be pretty general
-    // ---------------------------------------------------------------------------------------------------------------------------------
-
-    std::vector<TLorentzVector> get4Vectors(TVectorD *v, std::vector<Double_t> masses) //Useless function, need to be removed
+    std::vector<TLorentzVector> get4Vectors(TVectorD *v, std::vector<Double_t> masses) // Useless function, need to be removed
     {
         std::vector<TLorentzVector> result;
         Int_t nparticles = masses.size();
@@ -459,7 +301,6 @@ private:
         }
         return vec;
     }
-
 
     ClassDef(KinFitter, 1)
 };

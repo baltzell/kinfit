@@ -11,7 +11,7 @@ public:
 
     KinConstraint_EnergyMomentum(std::vector<int> index_in_parts)
     {
-        index_Cons_Particles=index_in_parts;
+        _index_Cons_Particles=index_in_parts;
         _nconstraints = 4;
     }
 
@@ -54,11 +54,13 @@ public:
                                {cos(theta), -p * sin(theta), 0},
                                {p / E, 0, 0}};
 
+        //cout<<data[0][0]<<" "<<data[0][1]<<" "<<data[0][2]<<endl;
+
        
 
         TMatrixD dfdx(_nconstraints, nvars, *data);
 
-        dfdx *= -1.;
+        dfdx *= -1.; //overall sign for the constraint to be correct
         return dfdx;
     }
 
