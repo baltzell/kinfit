@@ -10,11 +10,11 @@ public:
     KinConstraint() {}
 
 
-    virtual TVectorD getConstraint(std::vector<TLorentzVector> p_init, std::vector<TLorentzVector> p_fin_vector) = 0;
-    virtual TMatrixD getDfDx(int idx_part, std::vector<TLorentzVector> parts) = 0;
+    virtual TVectorD getConstraint(std::vector<TLorentzVector> init_particles, std::vector<TLorentzVector> fin_particles) = 0;
+    virtual TMatrixD getDfDx(int idx_part, std::vector<TLorentzVector> init_particles, std::vector<TLorentzVector> fin_particles) = 0;
    
 
-    virtual TMatrixD constructDMatrix(std::vector<TLorentzVector> particles)
+    virtual TMatrixD constructDMatrix(std::vector<TLorentzVector> init_particles, std::vector<TLorentzVector> fin_particles)
     {
 
         Int_t nparticles = _index_Cons_Particles.size();
@@ -25,7 +25,7 @@ public:
         int idx_mat = 0;
         for ( auto idx_part : _index_Cons_Particles)
         {
-            TMatrixD dfdx = this->getDfDx(idx_part, particles);
+            TMatrixD dfdx = this->getDfDx(idx_part, init_particles, fin_particles);
             D_Mat.SetSub(0, 3 * idx_mat, dfdx);
             idx_mat++;
         }

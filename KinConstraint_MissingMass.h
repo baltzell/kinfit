@@ -16,7 +16,7 @@ public:
         _inv_mass = in_inv_mass;
     }
 
-    TVectorD getConstraint(std::vector<TLorentzVector> p_init_vector, std::vector<TLorentzVector> p_fin_vector) override
+    TVectorD getConstraint(std::vector<TLorentzVector> init_particles, std::vector<TLorentzVector> fin_particles) override
     {
         TVectorD c;
         c.ResizeTo(_nconstraints);
@@ -24,20 +24,20 @@ public:
         TLorentzVector p_miss = TLorentzVector(0, 0, 0, 0);
 
         for (auto idx : _index_Cons_Particles)
-            p_miss += p_fin_vector[idx];
-        for (auto p_in : p_init_vector)
+            p_miss += fin_particles[idx];
+        for (auto p_in : init_particles)
             p_miss += p_in;
 
         c[0]=p_miss.M();
         return c;
     }
 
-    TMatrixD getDfDx(int idx_part, std::vector<TLorentzVector> particles) override 
+    TMatrixD getDfDx(int idx_part, std::vector<TLorentzVector> init_particles, std::vector<TLorentzVector> fin_particles) override 
     {
     
         Int_t nvars = 3;
 
-        TLorentzVector current_part = particles[idx_part];
+        TLorentzVector current_part = fin_particles[idx_part];
 
         Double_t theta_c = current_part.Theta();
         Double_t phi_c = current_part.Phi();
@@ -52,7 +52,7 @@ public:
         TLorentzVector p_miss = TLorentzVector(0, 0, 0, 0);
 
         for (auto idx : _index_Cons_Particles)
-            p_miss -= particles[idx];
+            p_miss -= fin_particles[idx];
         /*for (auto p_in : particles)
             p_miss += p_in;*/
         

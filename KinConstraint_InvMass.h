@@ -16,27 +16,27 @@ public:
         _inv_mass = in_inv_mass;
     }
 
-    TVectorD getConstraint(std::vector<TLorentzVector> p_init_vector, std::vector<TLorentzVector> p_fin_vector) override
+    TVectorD getConstraint(std::vector<TLorentzVector> init_particles, std::vector<TLorentzVector> fin_particles) override
     {
         TVectorD c;
         c.ResizeTo(_nconstraints);
 
-        TLorentzVector p_1 = p_fin_vector[_index_Cons_Particles[0]];
-        TLorentzVector p_2 = p_fin_vector[_index_Cons_Particles[1]];
+        TLorentzVector p_1 = fin_particles[_index_Cons_Particles[0]];
+        TLorentzVector p_2 = fin_particles[_index_Cons_Particles[1]];
 
         c[0] = ((p_1 + p_2).M2() - (_inv_mass * _inv_mass));
 
         return c;
     }
 
-    TMatrixD getDfDx(int idx_part, std::vector<TLorentzVector> particles) override
+    TMatrixD getDfDx(int idx_part, std::vector<TLorentzVector> init_particles, std::vector<TLorentzVector> fin_particles) override
     {
         int other_part = 0;
         if (idx_part == 0)
             other_part = 1;
 
-        TLorentzVector part_1 = particles[idx_part];
-        TLorentzVector part_2 = particles[other_part]; // This only support two particle invariant mass...
+        TLorentzVector part_1 = fin_particles[idx_part];
+        TLorentzVector part_2 = fin_particles[other_part]; // This only support two particle invariant mass...
 
         Double_t theta_1 = part_1.Theta();
         Double_t phi_1 = part_1.Phi();

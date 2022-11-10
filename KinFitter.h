@@ -200,13 +200,12 @@ private:
         _previous_C_B = _C_B; //Used to store the previous fit
         _previous_B = _B;
 
-        _B = _Cons[0]->constructDMatrix(get4Vectors(&_y, _masses_y)); // should be moved outside this method when ready
+        _B = _Cons[0]->constructDMatrix(_P_inits, get4Vectors(&_y, _masses_y)); // should be moved outside this method when ready
         _c = _Cons[0]->getConstraint(_P_inits, get4Vectors(&_y, _masses_y));
 
         TMatrixD BT = _B;
         BT.T();
 
-       
         _C_B = _B * _C_eta * BT;
         _C_B.SetTol(1.e-30); // Set tolerance to be much lower for inverted matrix
         _C_B.Invert();
