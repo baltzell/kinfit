@@ -34,7 +34,7 @@ int main()
     gStyle->SetOptStat(0);
     gStyle->SetOptFit(1111);
 
-    const std::vector<double> masses = {0.1, 0.1};
+    const std::vector<double> masses = {0.150, 0.150};
     const std::vector<TString> parts = {"e", "e"};
 
     const std::vector<TString> kines = {"P", "#theta", "#phi"};
@@ -46,8 +46,10 @@ int main()
     event.SetDecay(JPsi, masses.size(), &masses[0]);
 
     auto h_chi = new TH1F("h_chi", ";#chi^{2}/ndf", 101, 0, 10);
-    auto h_lik = new TH1F("h_lik", ";Confidence Level", 100, 0, 1);
-    auto h_mm_gen = new TH1F("h_mm_gen", ";Mass [GeV^{2}]", 501, 2.5, 3.5);
+    auto h_lik_Signal = new TH1F("h_lik_Signal", ";Confidence Level", 100, 0, 1);
+    auto h_lik_BG = new TH1F("h_lik_BG", ";Confidence Level", 100, 0, 1);
+
+    auto h_mm_gen = new TH1F("h_mm_gen", ";Mass [GeV]", 101, 2.5, 3.5);
     auto h_mm_sme = (TH1 *)h_mm_gen->Clone("h_mm_sme");
     auto h_mm_fit = (TH1 *)h_mm_gen->Clone("h_mm_fit");
 
@@ -69,9 +71,26 @@ int main()
         }
     }
 
+    bool is_BG = false;
+    TLorentzVector BG;
+
     int nevents = 0;
-    while (nevents < 1000)
+    while (nevents < 10000)
     {
+
+        if (rndm3.Uniform(0.0, 1.0) < 0.1)
+        {
+            float mass = rndm3.Uniform(2.5, 3.5);
+            BG.SetXYZM(0.0, 0.0, 5., mass);
+            event.SetDecay(BG, masses.size(), &masses[0]);
+            is_BG = true;
+        }
+        else
+        {
+            event.SetDecay(JPsi, masses.size(), &masses[0]);
+            is_BG = false;
+        }
+
         auto weight = event.Generate();
 
         std::vector<TLorentzVector> parts_gen;
@@ -92,7 +111,7 @@ int main()
 
         auto kin = new KinFitter({KinParticle(JPsi, JPsi.M())}, kin_parts_sme);
         kin->Add_InvMass_Constraint({0, 1}, 3.0);
-        kin->DoFitting(10);
+        kin->DoFitting(100);
 
         std::vector<TLorentzVector> parts_fit = kin->GetFitted4Vectors();
 
@@ -110,7 +129,12 @@ int main()
         h_mm_sme->Fill(JPsi_sme.M(), weight);
         h_mm_fit->Fill(JPsi_fit.M(), weight);
         h_chi->Fill(kin->GetChi2() / kin->GetNDF());
-        h_lik->Fill(kin->GetConfidenceLevel());
+
+         if (is_BG)
+            h_lik_BG->Fill(kin->GetConfidenceLevel());
+        else
+            h_lik_Signal->Fill(kin->GetConfidenceLevel());
+
 
         for (int ipart = 0; ipart < parts.size(); ipart++)
         {
@@ -132,7 +156,7 @@ int main()
         }
     }
 
-    auto c_missing = new TCanvas("can1", "Summary", 800, 800);
+    auto c_missing = new TCanvas("can1", "Summary", 800, 1500);
     c_missing->Divide(1, 3);
     c_missing->cd(1);
     gPad->SetLogy();
@@ -152,9 +176,17 @@ int main()
     c_missing->cd(3);
     h_chi->Draw();
     c_missing->cd(2);
-    // gPad->SetLogy();
-    h_lik->Draw();
-
+    gPad->SetLogy();
+    h_lik_Signal->SetLineColor(kRed);
+    h_lik_Signal->Draw();
+    h_lik_BG->SetLineColor(kBlue);
+    h_lik_BG->Draw("same");
+    auto legend1 = new TLegend(0.54, 0.87, 0.87, 0.67);
+    legend1->AddEntry(h_lik_Signal, "Signal", "l");
+    legend1->AddEntry(h_lik_BG, "BG", "l");
+    legend1->SetFillStyle(0);
+    legend1->SetLineWidth(0);
+    legend1->Draw("same ");
     c_missing->SaveAs("c_Missing_inv.pdf");
 
     TString fitopt = "Q";
