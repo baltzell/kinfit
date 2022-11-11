@@ -1,6 +1,6 @@
 # kinfit
 
-##Compiling
+## Compiling
 
 Requirements
 * ROOT
@@ -9,7 +9,7 @@ Requirements
 
 `./compile.sh`
 
-##Running the code
+## Running the code
 
 `./test_4C.exe`
 
