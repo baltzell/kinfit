@@ -9,7 +9,9 @@ public:
     virtual ~KinConstraint_InvMass() {}
     KinConstraint_InvMass() {}
 
-    KinConstraint_InvMass(std::vector<int> index_in_parts, double in_inv_mass)
+    Double_t _inv_mass;
+
+    KinConstraint_InvMass(std::vector<int> index_in_parts, Double_t in_inv_mass)
     {
         _index_Cons_Particles = index_in_parts;
         _nconstraints = 1;

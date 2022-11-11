@@ -54,13 +54,9 @@ public:
                                {cos(theta), -p * sin(theta), 0},
                                {p / E, 0, 0}};
 
-        //cout<<data[0][0]<<" "<<data[0][1]<<" "<<data[0][2]<<endl;
-
-       
-
         TMatrixD dfdx(_nconstraints, nvars, *data);
 
-        dfdx *= -1.; //overall sign for the constraint to be correct
+        dfdx *= -1.; //overall sign to match constraint definition
         return dfdx;
     }
 

@@ -1,8 +1,6 @@
 #ifndef KinFitter_h
-#define KinFitter_h 1
+#define KinFitter_h
 
-#include "Rtypes.h"
-#include "TObject.h"
 #include "TVectorD.h"
 #include "TMatrixD.h"
 #include "TLorentzVector.h"
@@ -12,10 +10,18 @@
 #include "KinConstraint_EnergyMomentum.h"
 #include "KinConstraint_InvMass.h"
 #include "KinConstraint_MissingMass.h"
+#include <iostream>
+using namespace std;
+
+
+/////////////////////////////////////////////////////////////////////////////////////////////////////
+//Kinfitter class
+//This class implemtent the kinematic fitter describe in https://www.jlab.org/Hall-B/notes/clas_notes03/03-017.pdf
+//The variable names match the notation used in the note and are refered to using the equation number of the note.
+/////////////////////////////////////////////////////////////////////////////////////////////////////
 
 class KinFitter
 {
-    // For now, these methods use the nomenclature in Mike Williams' 2003 analysis note
 
 public:
     double GetConfidenceLevel() { return _confLevel; }
@@ -25,67 +31,58 @@ public:
     std::vector<TLorentzVector> GetFitted4Vectors() { return _Ps_y; }
 
 private:
-    Double_t _confLevel;
+    Double_t _confLevel; 
     TVectorD _pulls;
     Double_t _chi2;
     Int_t _nvars_y;
     Int_t _nconstraints;
     Int_t _ndf;
 
-    int nter = 100;
+    int n_iter = 100;
 
-    TVectorD _eta;
-    TVectorD _sigma2_etas;
-    TMatrixD _C_eta;
-    TMatrixD _C_eta_Inv;
-    TVectorD _y;
-    TVectorD _sigma2_ys;
-    TMatrixD _C_y;
-    TVectorD _delta;
-    TVectorD _epsilon;
+    TVectorD _eta; //Measured vector Eq.1
+    TVectorD _sigma2_etas; //Measured errors for each measured quantities Eq.19
+    TMatrixD _C_eta; //Measured covariance matrix
+    TMatrixD _C_eta_Inv; //Inverse of the measured covariance matrix, used for the #chi^2 calculation
+    TVectorD _y; //Exact vector Eq.1
+    TVectorD _sigma2_ys;  //Diagonal of the covariance matrix of the improved measurement Eq.16
+    TMatrixD _C_y; //Covariance matrix of the improved measurement Eq.16
+    TVectorD _delta; //Deviation from the prefit vector Eq.12
+    TVectorD _epsilon; //Deviation from the measured vector Eq.15
 
-    std::vector<TLorentzVector> _P_inits;
-    std::vector<Double_t> _masses_y;   // Probably won't need
-    std::vector<TLorentzVector> _Ps_y; // Probably the only things that need to be public
+    std::vector<TLorentzVector> _P_inits; //Store the 4-Vectors of the initial state particles
+    std::vector<Double_t> _masses_y; //Store the masses of the fitted particles
+    std::vector<TLorentzVector> _Ps_y; //Store the 4-Vectors of the fitted particles
 
-    TMatrixD _B;
-    TMatrixD _previous_B;
+    TMatrixD _B; //Derivative matrix of the constraints Eq.5
+    TMatrixD _previous_B; //Store the previous iteration of the derivative matrix of the constraints Eq.5
 
-    TVectorD _c;
-    TLorentzVector _P_init;
-    TLorentzVector _P_fin;
-    TLorentzVector _Pdiff;
+    TVectorD _c; //Constraint vector Eq.6
 
-    TMatrixD _C_B;
-    TMatrixD _previous_C_B;
-    TVectorD _mu;
-    TMatrixD _C_x;
+    TMatrixD _C_B; //Useful C_B matrix, defined in Eq.12
+    TMatrixD _previous_C_B; //Store the previous iteration of the C_B matrix
 
-    std::vector<KinConstraint *> _Cons;
+    std::vector<KinConstraint *> _Cons; //Vector of contraints
+
+    Double_t alpha = 1.0; //Fit iteration weight
 
 public:
-    virtual ~KinFitter() {}
+    ~KinFitter() {};
 
-    KinFitter() {}
-
-public:
-    void SetInitial(std::vector<KinParticle> in_P_initial)
+    KinFitter(std::vector<KinParticle> in_P_initial, std::vector<KinParticle> in_P_final)
     {
         for (auto &in_P : in_P_initial)
         {
             _P_inits.push_back(in_P.GetVector());
         }
-    }
-
-    void SetFinal(std::vector<KinParticle> in_P_final)
-    {
-        _nvars_y = 3 * in_P_final.size();
+        _nvars_y = 3 * in_P_final.size(); // This might need some change once many constraints are set
         TMatrixD C_n(_nvars_y, _nvars_y);
 
         int idx = 0;
         for (auto &in_P : in_P_final)
         {
             _Ps_y.push_back(in_P.GetVector());
+            _masses_y.push_back(in_P.GetMass());
             TMatrixD C_in_P = in_P.GetCovMatrix();
             TMatrixDSub(C_n, 0 + 3 * idx, 2 + 3 * idx, 0 + 3 * idx, 2 + 3 * idx) = C_in_P; // Create block diagonal matrix with covariances
 
@@ -106,15 +103,16 @@ public:
         _C_eta = C_n;
 
         _C_eta_Inv = _C_eta;
-        _C_eta_Inv.SetTol(1.e-30); 
-        _C_eta_Inv.Invert();     
+        _C_eta_Inv.SetTol(1.e-30);
+        _C_eta_Inv.Invert();
 
         TMatrixDDiag diag(_C_eta);
         _sigma2_etas = diag;
 
-        Init4Vects();
+        _y = constructTVecFrom4Vecs(_Ps_y);
+        _eta = _y;
     }
-
+   
     void Add_EnergyMomentum_Constraint(std::vector<int> index_P_Cons)
     {
         KinConstraint_EnergyMomentum *in_Cons = new KinConstraint_EnergyMomentum(index_P_Cons);
@@ -139,41 +137,42 @@ public:
         _ndf = 1;
     }
 
-    // Main, Default Fitter
     void DoFitting(int in_nter = 100)
     {
+        _chi2 = 10000;
 
-        _chi2 = 10000; //Set chi2 to a high value
-
+        n_iter = in_nter;
         Int_t iter = 0;
         Int_t iter_inc = 0;
-        while (iter < nter)
+        while (iter < n_iter)
         {
 
-            double alpha = 1.0; //*(4.*(float)nter-(float)iter)/(4.*(float)nter);//iter_inc>0 ? 0.3 : 1.; //
             Double_t chi20 = _chi2;
 
-            ProcessFit(alpha);
+            /////////////////////////////////////////
+            //The math is done here
+            /////////////////////////////////////////
+            ProcessFit();
 
+            /////////////////////////////////////////
+            // Stop conditions of the fit
+            /////////////////////////////////////////
             if (_chi2 - chi20 > 0.)
-                iter_inc++; // Need to define proper stop conditions
+                iter_inc++;
 
             if (_chi2 - chi20 < 0. && iter > 0)
-                iter_inc=0; // Need to define proper stop conditions
+                iter_inc = 0;
 
             if (iter_inc > 1)
             {
                 if (iter > 0)
                 {
-                    cout << "stop: chi2 increasing after "<<iter<<" iterations \n";
-                    cout << _chi2 <<" "<<chi20<< '\n';
-                    UndoFit(alpha); // This is used to undo the previous fit as the chi2 is increasing
-                    cout <<"after undo "<< _chi2 <<" "<<chi20<< '\n';
+                    UndoFit();
                     break;
                 }
             }
 
-             if (abs(_chi2 - chi20) / chi20 < 0.001 )
+            if (abs(_chi2 - chi20) / chi20 < 0.001)
             {
                 if (iter > 0)
                 {
@@ -184,11 +183,14 @@ public:
             iter++;
         }
 
+        /////////////////////////////////////////
+        //Compute the outputs: Pulls, Confidence levels, and fitted vectors
+        /////////////////////////////////////////
         PostProcess();
     }
 
 private:
-    void ProcessFit(double alpha)
+    void ProcessFit()
     {
 
         _B.ResizeTo(_nconstraints, _nvars_y); // should be moved outside this method when ready
@@ -197,11 +199,13 @@ private:
         _previous_C_B.ResizeTo(_nconstraints, _nconstraints);
         _c.ResizeTo(_nconstraints);
 
-        _previous_C_B = _C_B; //Used to store the previous fit
+        // Store the previous fit parameters
+        _previous_C_B = _C_B;
         _previous_B = _B;
 
-        _B = _Cons[0]->constructDMatrix(_P_inits, get4Vectors(&_y, _masses_y)); // should be moved outside this method when ready
-        _c = _Cons[0]->getConstraint(_P_inits, get4Vectors(&_y, _masses_y));
+        //Compute constraints and derivatives Eq.5 and 6
+        _c = _Cons[0]->getConstraint(_P_inits, get4Vectors(&_y, _masses_y)); //As to be calculated before the B matrix
+        _B = _Cons[0]->constructBMatrix(_P_inits, get4Vectors(&_y, _masses_y)); // should be moved outside this method when ready
 
         TMatrixD BT = _B;
         BT.T();
@@ -210,16 +214,16 @@ private:
         _C_B.SetTol(1.e-30); // Set tolerance to be much lower for inverted matrix
         _C_B.Invert();
 
-        _delta = _C_eta * BT * _C_B * _c;
+        _delta = _C_eta * BT * _C_B * _c; //Compute #delta Eq. 12
         _delta *= -1;
-        _y += alpha * _delta;
-        _epsilon += _delta;
+        _y += alpha * _delta; //Update y Eq. 14
+        _epsilon += _delta; //Update #epsilon Eq. 15
 
         TVectorD pre_chi2 = _C_eta_Inv * _epsilon;
         _chi2 = _epsilon * pre_chi2;
     }
 
-    void UndoFit(double alpha)
+    void UndoFit() //This method uses stored fit parameters to undo previous fit if the chi_2 increased in the previous iteration
     {
         _y -= alpha * _delta;
         _epsilon -= _delta;
@@ -234,40 +238,35 @@ private:
 
     void PostProcess()
     {
-
-        // Set Confidence level
+       // Compute Confidence level Eq.17
         _confLevel = TMath::Prob(_chi2, _ndf);
 
-        // Set pulls
+        // Compute pulls
         TMatrixD BT = _B;
         BT.T();
         _C_y = _C_eta;
-        _C_y -= _C_eta * BT * _C_B * _B * _C_eta;
+        _C_y -= _C_eta * BT * _C_B * _B * _C_eta; //Eq.16
 
+        //////////
+        //Eq.19
+        //////////
         TVectorD num = _epsilon;
         TMatrixDDiag diag(_C_y);
         _sigma2_ys = diag;
         TVectorD denom = _sigma2_etas - _sigma2_ys;
         denom.Sqrt();
-        _pulls = ElementDiv(num, denom);
+        _pulls = ElementDiv(num, denom); 
 
         // Set final vector - should be changed at some point
         _Ps_y = get4Vectors(&_y, _masses_y);
     }
 
-    void Init4Vects()
-    {
-        // Initial 4-Vectors
-        for (auto P : _P_inits)
-            _P_init += P;
-        for (auto P : _Ps_y)
-            _masses_y.push_back(P.M());
 
-        _y = constructTVecFrom4Vecs(_Ps_y);
-        _eta = _y;
-    }
-
-    std::vector<TLorentzVector> get4Vectors(TVectorD *v, std::vector<Double_t> masses) // Useless function, need to be removed
+/////////////
+//Some function handling 4Vectors
+//We should get ride of them at some point
+/////////////
+    std::vector<TLorentzVector> get4Vectors(TVectorD *v, std::vector<Double_t> masses)
     {
         std::vector<TLorentzVector> result;
         Int_t nparticles = masses.size();
@@ -300,8 +299,6 @@ private:
         }
         return vec;
     }
-
-    ClassDef(KinFitter, 1)
 };
 
 #endif

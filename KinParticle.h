@@ -8,19 +8,22 @@ public:
     virtual ~KinParticle() {}
     KinParticle() {}
 
-    KinParticle(TLorentzVector in_vector, TMatrixD in_Cov)
+    KinParticle(TLorentzVector in_vector, Double_t in_mass, TMatrixD in_Cov)
         : _vector(in_vector),
+          _mass(in_mass),
           _Cov(in_Cov)
     {
     }
 
-    KinParticle(TLorentzVector in_vector)
-        : _vector(in_vector)
+    KinParticle(TLorentzVector in_vector, Double_t in_mass)
+        : _vector(in_vector),
+          _mass(in_mass)
     {
     }
 
-    KinParticle(TLorentzVector in_vector, std::vector<Double_t> in_sigmas)
-        : _vector(in_vector)
+    KinParticle(TLorentzVector in_vector, Double_t in_mass, std::vector<Double_t> in_sigmas)
+        : _vector(in_vector),
+          _mass(in_mass)
     {
         TMatrixD _Cov_from_sigmas(in_sigmas.size(), in_sigmas.size());
         for (Int_t ii = 0; ii < in_sigmas.size(); ii++)
@@ -34,12 +37,15 @@ public:
 public:
     TLorentzVector GetVector() { return _vector; }
     TMatrixD GetCovMatrix() { return _Cov; }
+    Double_t GetMass() { return _mass; }
 
     void SetVector(TLorentzVector in_vector) { _vector = in_vector; }
+    void SetMass(Double_t in_mass) { _mass = in_mass; }
     void SetCovMatrix(TMatrixD in_Cov) { _Cov = in_Cov; }
 
 public:
     TLorentzVector _vector;
+    Double_t _mass;
     TMatrixD _Cov = TMatrixD(3, 3);
 };
 

@@ -6,10 +6,14 @@
 class KinConstraint_MissingMass : public KinConstraint
 {
 public:
+
+    TLorentzVector _p_miss;
+    Double_t _inv_mass;
+
     virtual ~KinConstraint_MissingMass() {}
     KinConstraint_MissingMass() {}
 
-    KinConstraint_MissingMass(std::vector<int> index_in_parts, double in_inv_mass)
+    KinConstraint_MissingMass(std::vector<int> index_in_parts, Double_t in_inv_mass)
     {
         _index_Cons_Particles = index_in_parts;
         _nconstraints = 1;
@@ -21,14 +25,13 @@ public:
         TVectorD c;
         c.ResizeTo(_nconstraints);
 
-        TLorentzVector p_miss = TLorentzVector(0, 0, 0, 0);
-
-        for (auto idx : _index_Cons_Particles)
-            p_miss += fin_particles[idx];
         for (auto p_in : init_particles)
-            p_miss += p_in;
+            _p_miss += p_in;
+        for (auto idx : _index_Cons_Particles){
+            _p_miss -= fin_particles[idx];
+        }
 
-        c[0]=p_miss.M();
+        c[0]=_p_miss.M2()-(_inv_mass*_inv_mass);
         return c;
     }
 
@@ -47,28 +50,20 @@ public:
         Double_t px_c = current_part.Px();
         Double_t py_c = current_part.Py();
         Double_t pz_c = current_part.Pz();
+    
+        Double_t px_miss = _p_miss.Px();
+        Double_t py_miss = _p_miss.Py();
+        Double_t pz_miss = _p_miss.Pz();
+        Double_t E_miss = _p_miss.E();
 
 
-        TLorentzVector p_miss = TLorentzVector(0, 0, 0, 0);
-
-        for (auto idx : _index_Cons_Particles)
-            p_miss -= fin_particles[idx];
-        /*for (auto p_in : particles)
-            p_miss += p_in;*/
-        
-        Double_t px_miss = p_miss.Px();
-        Double_t py_miss = p_miss.Py();
-        Double_t pz_miss = p_miss.Pz();
-        Double_t E_miss = p_miss.E();
-
-
-        Double_t data[1][3];
-        /* Double_t data[1][3] = {{2.*(p_c*(E_miss)/E_1) -2.*( (px_1/p_1)*(px_miss) + (py_1/p_1)*(py_1+py_2) + (pz_1/p_1)*(pz_1+pz_2)),
-        -2.*( p_1*cos(phi_1)*cos(theta_1)*(px_1+px_2) + p_1*sin(phi_1)*cos(theta_1)*(py_1+py_2) -1.* p_1*sin(theta_1)*(pz_1+pz_2)),
-        -2.*(-1.*p_1*sin(theta_1)*sin(phi_1)*(px_1+px_2) + p_1*sin(theta_1)*cos(phi_1)*(py_1+py_2))}};*/
+        Double_t data[1][3] = {{2.*(p_c*(E_miss)/E_c) -2.*( (px_c/p_c)*(px_miss) + (py_c/p_c)*(py_miss) + (pz_c/p_c)*(pz_miss)),
+        -2.*( p_c*cos(phi_c)*cos(theta_c)*(px_miss) + p_c*sin(phi_c)*cos(theta_c)*(py_miss) -1.* p_c*sin(theta_c)*(pz_miss)),
+        -2.*(-1.*p_c*sin(theta_c)*sin(phi_c)*(px_miss) + p_c*sin(theta_c)*cos(phi_c)*(py_miss))}};
 
         TMatrixD dfdx(_nconstraints, nvars, *data);
 
+        dfdx *= -1.; //overall sign to match constraint definition
 
         return dfdx;
     }
