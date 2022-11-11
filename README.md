@@ -1,5 +1,7 @@
 # kinfit
 
+Variable names and equations in:  https://www.jlab.org/Hall-B/notes/clas_notes03/03-017.pdf
+
 ## Compiling
 
 Requirements
@@ -16,6 +18,4 @@ Requirements
 `./test_InvMass.exe`
 
 `./test_MissingParticle.exe`
-
-Variable names and equations in:  https://www.jlab.org/Hall-B/notes/clas_notes03/03-017.pdf
 
