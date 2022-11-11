@@ -24,9 +24,9 @@ class KinFitter
 {
 
 public:
-    double GetConfidenceLevel() { return _confLevel; }
-    double GetChi2() { return _chi2; }
-    double GetNDF() { return _ndf; }
+    Double_t GetConfidenceLevel() { return _confLevel; }
+    Double_t GetChi2() { return _chi2; }
+    Double_t GetNDF() { return _ndf; }
     TVectorD GetPulls() { return _pulls; }
     std::vector<TLorentzVector> GetFitted4Vectors() { return _Ps_y; }
 
@@ -121,7 +121,7 @@ public:
         _ndf = 4;
     }
 
-    void Add_InvMass_Constraint(std::vector<int> index_P_Cons, double in_mass)
+    void Add_InvMass_Constraint(std::vector<int> index_P_Cons, Double_t in_mass)
     {
         KinConstraint_InvMass *in_Cons = new KinConstraint_InvMass(index_P_Cons, in_mass);
         _Cons.push_back(in_Cons);
@@ -129,7 +129,7 @@ public:
         _ndf = 1;
     }
 
-    void Add_MissingMass_Constraint(std::vector<int> index_P_Cons, double in_mass)
+    void Add_MissingMass_Constraint(std::vector<int> index_P_Cons, Double_t in_mass)
     {
         KinConstraint_MissingMass *in_Cons = new KinConstraint_MissingMass(index_P_Cons, in_mass);
         _Cons.push_back(in_Cons);

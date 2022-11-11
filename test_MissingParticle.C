@@ -12,7 +12,7 @@
 #include "TRandom3.h"
 
 // absolute resolutions (GeV,radians,radians):
-const std::vector<double> RESO = {0.02, 0.02, 0.02};
+const std::vector<double> RESO = {0.002, 0.02, 0.02};
 
 TRandom3 rndm3(0);
 
@@ -34,8 +34,8 @@ int main()
     gStyle->SetOptStat(0);
     gStyle->SetOptFit(1111);
 
-    const std::vector<double> masses = {0.139, 0.139, 0.150, 0.150, 0.938};
-    const std::vector<TString> parts = {"#pi^{+}", "#pi^{-}", "#mu", "#mu", "p"};
+    const std::vector<double> masses = {0.139, 0.139, 0.938};
+    const std::vector<TString> parts = {"#pi^{+}", "#pi^{-}", "p"};
 
     const std::vector<TString> kines = {"P", "#theta", "#phi"};
     const std::vector<TString> units = {"GeV", "rad", "rad"};
@@ -46,11 +46,11 @@ int main()
     TGenPhaseSpace event;
     event.SetDecay(W, masses.size(), &masses[0]);
 
+    auto h_chi = new TH1F("h_chi", ";#chi^{2}/ndf", 201, 0, 10);
+    auto h_lik_Signal = new TH1F("h_lik_Signal", ";Confidence Level", 100, 0, 1);
+    auto h_lik_BG = new TH1F("h_lik_BG", ";Confidence Level", 100, 0, 1);
 
-    auto h_chi = new TH1F("h_chi", ";#chi^{2}/ndf", 501, 0, 10);
-    auto h_lik = new TH1F("h_lik", ";Confidence Level", 100, 0, 1);
-
-    auto h_mm_gen = new TH1F("h_mm_gen", ";Missing Mass [GeV^{2}]", 501, 1.0 - 0.5 * (parts.size() - 1), 1.0 + 0.5 * (parts.size() - 1));
+    auto h_mm_gen = new TH1F("h_mm_gen", ";Missing Mass [GeV^{2}]", 201, 1.0 - 0.5 * (parts.size() - 1), 1.0 + 0.5 * (parts.size() - 1));
     auto h_mm_sme = (TH1 *)h_mm_gen->Clone("h_mm_sme");
     auto h_mm_fit = (TH1 *)h_mm_gen->Clone("h_mm_fit");
 
@@ -72,9 +72,23 @@ int main()
         }
     }
 
+    bool is_BG = false;
+
     int nevents = 0;
-    while (nevents < 1000)
+    while (nevents < 10000)
     {
+
+        if (rndm3.Uniform(0.0, 1.0) < 0.1)
+        {
+            std::vector<double> masses_BG = {0.139, 0.139, 0.938, 0.000};
+            event.SetDecay(W, masses_BG.size(), &masses_BG[0]);
+            is_BG = true;
+        }
+        else
+        {
+            event.SetDecay(W, masses.size(), &masses[0]);
+            is_BG = false;
+        }
 
         auto weight = event.Generate();
 
@@ -95,8 +109,8 @@ int main()
         nevents++;
 
         auto kin = new KinFitter({KinParticle(target, target.M()), KinParticle(beam, beam.M())}, kin_parts_sme);
-        kin->Add_MissingMass_Constraint({0, 1, 2, 3}, 0.938);
-        kin->DoFitting(1);
+        kin->Add_MissingMass_Constraint({0, 1}, 0.938);
+        kin->DoFitting(100);
 
         std::vector<TLorentzVector> parts_fit = kin->GetFitted4Vectors();
 
@@ -115,7 +129,11 @@ int main()
         h_mm_sme->Fill(missing_sme.M2(), weight);
         h_mm_fit->Fill(missing_fit.M2(), weight);
         h_chi->Fill(kin->GetChi2() / kin->GetNDF());
-        h_lik->Fill(kin->GetConfidenceLevel());
+
+        if (is_BG)
+            h_lik_Signal->Fill(kin->GetConfidenceLevel());
+        else
+            h_lik_BG->Fill(kin->GetConfidenceLevel());
 
         for (int ipart = 0; ipart < parts.size() - 1; ipart++)
         {
@@ -137,7 +155,7 @@ int main()
         }
     }
 
-    auto c_missing = new TCanvas("can1", "Summary", 800, 800);
+    auto c_missing = new TCanvas("can1", "Summary", 800, 1500);
     c_missing->Divide(1, 3);
     c_missing->cd(1);
     gPad->SetLogy();
@@ -157,10 +175,12 @@ int main()
     c_missing->cd(3);
     h_chi->Draw();
     c_missing->cd(2);
-    // gPad->SetLogy();
-    h_lik->Draw();
-
-    c_missing->SaveAs("c_Missing.pdf");
+    gPad->SetLogy();
+    h_lik_Signal->SetLineColor(kRed);
+    h_lik_Signal->Draw();
+    h_lik_BG->SetLineColor(kBlue);
+    h_lik_BG->Draw("same");
+    c_missing->SaveAs("c_Missing_MMass.pdf");
 
     TString fitopt = "Q";
     auto c_pulls = new TCanvas("can2", "Pulls", 900, int(float(1200) * parts.size() / 3));
@@ -173,7 +193,7 @@ int main()
             h_pulls[ipart * kines.size() + jkine]->Fit("gaus", fitopt);
         }
     }
-    c_pulls->SaveAs("c_pulls.pdf");
+    c_pulls->SaveAs("c_pulls_MMass.pdf");
 
     auto c_res = new TCanvas("can3", "Residuals", 900, 600);
     c_res->Divide(3, 3);
@@ -185,7 +205,7 @@ int main()
             h_fitres[ipart * kines.size() + jkine]->Fit("gaus", fitopt);
         }
     }
-    c_pulls->SaveAs("c_res.pdf");
+    c_pulls->SaveAs("c_res_MMass.pdf");
 
     auto c_sme = new TCanvas("can4", "Smearing", 900, 600);
     c_sme->Divide(3, 3);
@@ -199,7 +219,7 @@ int main()
             h_fitgen[ipart * kines.size() + jkine]->Draw("same");
         }
     }
-    c_sme->SaveAs("c_sme.pdf");
+    c_sme->SaveAs("c_sme_MMass.pdf");
 
     return 0;
 }

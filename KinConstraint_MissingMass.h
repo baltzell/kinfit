@@ -25,6 +25,8 @@ public:
         TVectorD c;
         c.ResizeTo(_nconstraints);
 
+        _p_miss.SetXYZT(0.0,0.0,0.0,0.0);
+
         for (auto p_in : init_particles)
             _p_miss += p_in;
         for (auto idx : _index_Cons_Particles){
