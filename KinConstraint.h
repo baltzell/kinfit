@@ -27,17 +27,17 @@ public:
         TMatrixD d_mat(_nconstraints,nvars); 
 
         int idx_mat = 0;
-        for (auto idx_part : _index_cons_particles)
+        for (auto i : _index_cons_particles)
         {
-            TMatrixD dfdx = this->getDfDx(idx_part, init_particles, fin_particles);
+            TMatrixD dfdx = this->getDfDx(i, init_particles, fin_particles);
             d_mat.SetSub(0, _nvars * idx_mat, dfdx);
-
             idx_mat++;
         }
 
         return d_mat;
     }
 
+protected:
     // the index of particles used in constraints
     std::vector<int> _index_cons_particles;
 

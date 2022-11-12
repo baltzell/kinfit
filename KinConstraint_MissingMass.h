@@ -19,18 +19,15 @@ public:
 
     TVectorD getConstraint(std::vector<TLorentzVector> init_particles, std::vector<TLorentzVector> fin_particles) override
     {
-        TVectorD c;
-        c.ResizeTo(_nconstraints);
-
         _p_miss.SetXYZT(0,0,0,0);
 
-        for (auto p_in : init_particles)
-            _p_miss += p_in;
-        for (auto idx : _index_cons_particles){
-            _p_miss -= fin_particles[idx];
-        }
+        for (auto p : init_particles) _p_miss += p;
+        for (auto i : _index_cons_particles) _p_miss -= fin_particles[i];
 
+        TVectorD c;
+        c.ResizeTo(_nconstraints);
         c[0]=_p_miss.M2()-(_inv_mass*_inv_mass);
+
         return c;
     }
 
@@ -51,7 +48,6 @@ public:
         Double_t py_miss = _p_miss.Py();
         Double_t pz_miss = _p_miss.Pz();
         Double_t E_miss = _p_miss.E();
-
 
         Double_t data[1][_nvars] = {
             {

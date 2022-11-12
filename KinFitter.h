@@ -73,7 +73,10 @@ public:
         {
             _P_inits.push_back(in_P.GetVector());
         }
-        _nvars_y = 3 * in_P_final.size(); // This might need some change once many constraints are set
+
+        // This might need some change once many constraints are set:
+        _nvars_y = 3 * in_P_final.size();
+        
         TMatrixD C_n(_nvars_y, _nvars_y);
 
         int idx = 0;
@@ -82,7 +85,9 @@ public:
             _Ps_y.push_back(in_P.GetVector());
             _masses_y.push_back(in_P.GetMass());
             TMatrixD C_in_P = in_P.GetCovMatrix();
-            TMatrixDSub(C_n, 0 + 3 * idx, 2 + 3 * idx, 0 + 3 * idx, 2 + 3 * idx) = C_in_P; // Create block diagonal matrix with covariances
+
+            // Create block diagonal matrix with covariances:
+            TMatrixDSub(C_n, 0 + 3 * idx, 2 + 3 * idx, 0 + 3 * idx, 2 + 3 * idx) = C_in_P;
 
             idx++;
         }

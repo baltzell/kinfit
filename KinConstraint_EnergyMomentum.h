@@ -15,31 +15,23 @@ public:
 
     TVectorD getConstraint( std::vector<TLorentzVector>init_particles, std::vector<TLorentzVector> fin_particles) override
     {
-        TVectorD c;
-        c.ResizeTo(_nconstraints);
-       
-        TLorentzVector p_fin = TLorentzVector(0, 0, 0, 0);
-        for (auto P : fin_particles)
-            p_fin += P;
+        TLorentzVector p_init(0, 0, 0, 0);
+        TLorentzVector p_fin(0, 0, 0, 0);
 
-        TLorentzVector p_init = TLorentzVector(0, 0, 0, 0);
-        for (auto P : init_particles)
-            p_init += P;
+        for (auto p : init_particles) p_init += p;
+        for (auto p : fin_particles) p_fin += p;
 
         TLorentzVector p_diff = p_init - p_fin;
 
-        for (Int_t ii = 0; ii < _nconstraints; ii++)
-        {
-            c[ii] = p_diff[ii];
-        }
+        TVectorD c;
+        c.ResizeTo(_nconstraints);
+        for (Int_t ii = 0; ii < _nconstraints; ii++) c[ii] = p_diff[ii];
 
         return c;
     }
 
     TMatrixD getDfDx(int idx_part, std::vector<TLorentzVector> init_particles, std::vector<TLorentzVector> fin_particles) override 
     {
-
-
         Double_t theta = fin_particles[idx_part].Theta();
         Double_t phi = fin_particles[idx_part].Phi();
         Double_t p = fin_particles[idx_part].P();

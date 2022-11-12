@@ -3,6 +3,8 @@
 
 #include "KinConstraint.h"
 
+// WARNING:  This only supports one invariant mass with two daughters.
+
 class KinConstraint_InvMass : public KinConstraint
 {
 public:
@@ -18,12 +20,11 @@ public:
 
     TVectorD getConstraint(std::vector<TLorentzVector> init_particles, std::vector<TLorentzVector> fin_particles) override
     {
-        TVectorD c;
-        c.ResizeTo(_nconstraints);
-
         TLorentzVector p_1 = fin_particles[_index_cons_particles[0]];
         TLorentzVector p_2 = fin_particles[_index_cons_particles[1]];
 
+        TVectorD c;
+        c.ResizeTo(_nconstraints);
         c[0] = ((p_1 + p_2).M2() - (_inv_mass * _inv_mass));
 
         return c;
@@ -31,11 +32,8 @@ public:
 
     TMatrixD getDfDx(int idx_part, std::vector<TLorentzVector> init_particles, std::vector<TLorentzVector> fin_particles) override
     {
-        int other_part = 0;
-        if (idx_part == 0)
-            other_part = 1;
+        const int other_part = idx_part==0 ? 1 : 0;;
 
-        // FIXME:  Here we only support the invariant mass of 2 partices:
         TLorentzVector part_1 = fin_particles[idx_part];
         TLorentzVector part_2 = fin_particles[other_part];
 
@@ -57,7 +55,7 @@ public:
         Double_t py_2 = part_2.Py();
         Double_t pz_2 = part_2.Pz();
 
-        Double_t data[1][_nvars] = {
+        Double_t data[4][_nvars] = {
             {
              2*( p_1*(E_1+E_2)/E_1) - 2*( (px_1/p_1)*(px_1+px_2) + (py_1/p_1)*(py_1+py_2) + (pz_1/p_1)*(pz_1+pz_2)),
             -2*( p_1*cos(phi_1)*cos(theta_1)*(px_1+px_2) + p_1*sin(phi_1)*cos(theta_1)*(py_1+py_2) - p_1*sin(theta_1)*(pz_1+pz_2)),
