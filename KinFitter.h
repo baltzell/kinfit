@@ -22,19 +22,19 @@ class KinFitter
 {
 
 public:
-    Double_t GetConfidenceLevel() { return _confLevel; }
-    Double_t GetChi2() { return _chi2; }
-    Double_t GetNDF() { return _ndf; }
+    double GetConfidenceLevel() { return _confLevel; }
+    double GetChi2() { return _chi2; }
+    double GetNDF() { return _ndf; }
     TVectorD GetPulls() { return _pulls; }
     std::vector<TLorentzVector> GetFitted4Vectors() { return _Ps_y; }
 
 private:
-    Double_t _confLevel; 
+    double _confLevel; 
     TVectorD _pulls;
-    Double_t _chi2;
-    Int_t _nvars_y;
-    Int_t _nconstraints;
-    Int_t _ndf;
+    double _chi2;
+    int _nvars_y;
+    int _nconstraints;
+    int _ndf;
 
     int n_iter = 100;
 
@@ -49,7 +49,7 @@ private:
     TVectorD _epsilon; //Deviation from the measured vector Eq.15
 
     std::vector<TLorentzVector> _P_inits; //Store the 4-Vectors of the initial state particles
-    std::vector<Double_t> _masses_y; //Store the masses of the fitted particles
+    std::vector<double> _masses_y; //Store the masses of the fitted particles
     std::vector<TLorentzVector> _Ps_y; //Store the 4-Vectors of the fitted particles
 
     TMatrixD _B; //Derivative matrix of the constraints Eq.5
@@ -62,7 +62,7 @@ private:
 
     std::vector<KinConstraint *> _Cons; //Vector of contraints
 
-    Double_t alpha = 1.0; //Fit iteration weight
+    double alpha = 1.0; //Fit iteration weight
 
 public:
     ~KinFitter() {};
@@ -124,7 +124,7 @@ public:
         _ndf = 4;
     }
 
-    void Add_InvMass_Constraint(std::vector<int> index_P_Cons, Double_t in_mass)
+    void Add_InvMass_Constraint(std::vector<int> index_P_Cons, double in_mass)
     {
         KinConstraint_InvMass *in_Cons = new KinConstraint_InvMass(index_P_Cons, in_mass);
         _Cons.push_back(in_Cons);
@@ -132,7 +132,7 @@ public:
         _ndf = 1;
     }
 
-    void Add_MissingMass_Constraint(std::vector<int> index_P_Cons, Double_t in_mass)
+    void Add_MissingMass_Constraint(std::vector<int> index_P_Cons, double in_mass)
     {
         KinConstraint_MissingMass *in_Cons = new KinConstraint_MissingMass(index_P_Cons, in_mass);
         _Cons.push_back(in_Cons);
@@ -145,12 +145,12 @@ public:
         _chi2 = 10000;
 
         n_iter = in_nter;
-        Int_t iter = 0;
-        Int_t iter_inc = 0;
+        int iter = 0;
+        int iter_inc = 0;
         while (iter < n_iter)
         {
 
-            Double_t chi20 = _chi2;
+            double chi20 = _chi2;
 
             /////////////////////////////////////////
             //The math is done here
@@ -269,17 +269,17 @@ private:
 //Some function handling 4Vectors
 //We should get ride of them at some point
 /////////////
-    std::vector<TLorentzVector> get4Vectors(TVectorD *v, std::vector<Double_t> masses)
+    std::vector<TLorentzVector> get4Vectors(TVectorD *v, std::vector<double> masses)
     {
         std::vector<TLorentzVector> result;
-        Int_t nparticles = masses.size();
-        for (Int_t ii = 0; ii < nparticles; ++ii)
+        int nparticles = masses.size();
+        for (int ii = 0; ii < nparticles; ++ii)
         {
-            Double_t m = masses[ii];
-            Double_t p = (*v)[3 * ii];
-            Double_t theta = (*v)[3 * ii + 1];
-            Double_t phi = (*v)[3 * ii + 2];
-            // Double_t E     = v[ 3*ii + 3];
+            double m = masses[ii];
+            double p = (*v)[3 * ii];
+            double theta = (*v)[3 * ii + 1];
+            double phi = (*v)[3 * ii + 2];
+            // double E     = v[ 3*ii + 3];
             TVector3 vec3;
             vec3.SetMagThetaPhi(1, theta, phi);
             vec3 *= p;
@@ -290,10 +290,10 @@ private:
 
     TVectorD constructTVecFrom4Vecs(std::vector<TLorentzVector> P4s)
     {
-        Int_t nparticles = P4s.size();
-        Int_t nvars = 3 * nparticles;
+        int nparticles = P4s.size();
+        int nvars = 3 * nparticles;
         TVectorD vec(nvars);
-        for (Int_t ii = 0; ii < nparticles; ++ii)
+        for (int ii = 0; ii < nparticles; ++ii)
         {
             TLorentzVector P = P4s[ii];
             vec[3 * ii + 0] = P.P();

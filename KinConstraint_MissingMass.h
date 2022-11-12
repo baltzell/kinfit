@@ -8,9 +8,9 @@ class KinConstraint_MissingMass : public KinConstraint
 public:
 
     TLorentzVector _p_miss;
-    Double_t _inv_mass;
+    double _inv_mass;
 
-    KinConstraint_MissingMass(std::vector<int> index_in_parts, Double_t in_inv_mass)
+    KinConstraint_MissingMass(std::vector<int> index_in_parts, double in_inv_mass)
     {
         _index_cons_particles = index_in_parts;
         _nconstraints = 1;
@@ -35,21 +35,21 @@ public:
     {
         TLorentzVector current_part = fin_particles[idx_part];
 
-        Double_t theta_c = current_part.Theta();
-        Double_t phi_c = current_part.Phi();
-        Double_t p_c = current_part.P();
-        Double_t E_c = current_part.E();
+        double theta_c = current_part.Theta();
+        double phi_c = current_part.Phi();
+        double p_c = current_part.P();
+        double E_c = current_part.E();
 
-        Double_t px_c = current_part.Px();
-        Double_t py_c = current_part.Py();
-        Double_t pz_c = current_part.Pz();
+        double px_c = current_part.Px();
+        double py_c = current_part.Py();
+        double pz_c = current_part.Pz();
     
-        Double_t px_miss = _p_miss.Px();
-        Double_t py_miss = _p_miss.Py();
-        Double_t pz_miss = _p_miss.Pz();
-        Double_t E_miss = _p_miss.E();
+        double px_miss = _p_miss.Px();
+        double py_miss = _p_miss.Py();
+        double pz_miss = _p_miss.Pz();
+        double E_miss = _p_miss.E();
 
-        Double_t data[1][_nvars] = {
+        double data[1][_nvars] = {
             {
                 2*(p_c*(E_miss)/E_c) - 2*( (px_c/p_c)*(px_miss) + (py_c/p_c)*(py_miss) + (pz_c/p_c)*(pz_miss)),
                -2*( p_c*cos(phi_c)*cos(theta_c)*(px_miss) + p_c*sin(phi_c)*cos(theta_c)*(py_miss) - p_c*sin(theta_c)*(pz_miss)),

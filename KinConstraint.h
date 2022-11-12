@@ -21,8 +21,8 @@ public:
     // Concatenate Bs of each fitted particle
     TMatrixD constructBMatrix(std::vector<TLorentzVector> init_particles, std::vector<TLorentzVector> fin_particles)
     {
-        Int_t nparticles = _index_cons_particles.size();
-        Int_t nvars = _nvars * nparticles;
+        int nparticles = _index_cons_particles.size();
+        int nvars = _nvars * nparticles;
 
         TMatrixD d_mat(_nconstraints,nvars); 
 
