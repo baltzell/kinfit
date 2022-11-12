@@ -8,7 +8,7 @@ const std::vector<TString> UNITS = {"GeV", "rad", "rad"};
 
 TRandom3 RNDM3(0);
 
-auto smear(TLorentzVector *v)
+TLorentzVector smear(TLorentzVector *v)
 {
     // smear by absolute resolutions:
     const double p = RNDM3.Gaus(0.0, RESO[0]) + v->P();
