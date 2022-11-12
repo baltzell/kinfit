@@ -39,9 +39,6 @@ public:
 
     TMatrixD getDfDx(int idx_part, std::vector<TLorentzVector> init_particles, std::vector<TLorentzVector> fin_particles) override 
     {
-    
-        Int_t nvars = 3;
-
         TLorentzVector current_part = fin_particles[idx_part];
 
         Double_t theta_c = current_part.Theta();
@@ -59,11 +56,11 @@ public:
         Double_t E_miss = _p_miss.E();
 
 
-        Double_t data[1][3] = {{2.*(p_c*(E_miss)/E_c) -2.*( (px_c/p_c)*(px_miss) + (py_c/p_c)*(py_miss) + (pz_c/p_c)*(pz_miss)),
+        Double_t data[1][_nvars] = {{2.*(p_c*(E_miss)/E_c) -2.*( (px_c/p_c)*(px_miss) + (py_c/p_c)*(py_miss) + (pz_c/p_c)*(pz_miss)),
         -2.*( p_c*cos(phi_c)*cos(theta_c)*(px_miss) + p_c*sin(phi_c)*cos(theta_c)*(py_miss) -1.* p_c*sin(theta_c)*(pz_miss)),
         -2.*(-1.*p_c*sin(theta_c)*sin(phi_c)*(px_miss) + p_c*sin(theta_c)*cos(phi_c)*(py_miss))}};
 
-        TMatrixD dfdx(_nconstraints, nvars, *data);
+        TMatrixD dfdx(_nconstraints, _nvars, *data);
 
         dfdx *= -1.; //overall sign to match constraint definition
 

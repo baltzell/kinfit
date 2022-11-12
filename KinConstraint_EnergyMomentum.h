@@ -30,7 +30,7 @@ public:
 
         TLorentzVector _p_diff = _p_init - _p_fin;
 
-        for (Int_t ii = 0; ii < 4; ii++)
+        for (Int_t ii = 0; ii < _nconstraints; ii++)
         {
             _c[ii] = _p_diff[ii];
         }
@@ -47,14 +47,12 @@ public:
         Double_t p = fin_particles[idx_part].P();
         Double_t E = fin_particles[idx_part].E();
 
-        Int_t nvars = 3;
-
-        Double_t data[4][3] = {{sin(theta) * cos(phi), p * cos(theta) * cos(phi), -p * sin(theta) * sin(phi)},
+        Double_t data[4][_nvars] = {{sin(theta) * cos(phi), p * cos(theta) * cos(phi), -p * sin(theta) * sin(phi)},
                                {sin(theta) * sin(phi), p * cos(theta) * sin(phi), p * sin(theta) * cos(phi)},
                                {cos(theta), -p * sin(theta), 0},
                                {p / E, 0, 0}};
 
-        TMatrixD dfdx(_nconstraints, nvars, *data);
+        TMatrixD dfdx(_nconstraints, _nvars, *data);
 
         dfdx *= -1.; //overall sign to match constraint definition
         return dfdx;

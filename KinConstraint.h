@@ -10,6 +10,7 @@ class KinConstraint
 public:
     std::vector<int> _index_Cons_Particles; //Store only the index of particles used in the constraint
     int _nconstraints;
+    static const int _nvars = 3;
 
     virtual ~KinConstraint() {}
     KinConstraint() {}
@@ -22,15 +23,15 @@ public:
     {
 
         Int_t nparticles = _index_Cons_Particles.size();
-        Int_t nvars = 3 * nparticles;
+        Int_t nvars = _nvars * nparticles;
 
-        TMatrixD D_Mat(_nconstraints, nvars);
+        TMatrixD D_Mat(_nconstraints,nvars); 
 
         int idx_mat = 0;
         for (auto idx_part : _index_Cons_Particles)
         {
             TMatrixD dfdx = this->getDfDx(idx_part, init_particles, fin_particles);
-            D_Mat.SetSub(0, 3 * idx_mat, dfdx);
+            D_Mat.SetSub(0, _nvars * idx_mat, dfdx);
 
             idx_mat++;
         }
