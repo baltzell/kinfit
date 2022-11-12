@@ -8,36 +8,43 @@ using namespace std;
 class KinConstraint
 {
 public:
-    std::vector<int> _index_Cons_Particles; //Store only the index of particles used in the constraint
-    int _nconstraints;
+    
+    // the number of kinematic variables per particle
     static const int _nvars = 3;
 
     virtual ~KinConstraint() {}
-    KinConstraint() {}
 
-    // Fully virtual functions to be implememted in each constraint class
-    virtual TVectorD getConstraint(std::vector<TLorentzVector> init_particles, std::vector<TLorentzVector> fin_particles) = 0; // Calculate f(x)
-    virtual TMatrixD getDfDx(int idx_part, std::vector<TLorentzVector> init_particles, std::vector<TLorentzVector> fin_particles) = 0; // Calculate B for a given particle
+    // Calculate f(x)
+    virtual TVectorD getConstraint(std::vector<TLorentzVector> init_particles, std::vector<TLorentzVector> fin_particles) = 0;
 
-    TMatrixD constructBMatrix(std::vector<TLorentzVector> init_particles, std::vector<TLorentzVector> fin_particles) // Concatenate Bs of each fitted particle
+    // Calculate B for a given particle
+    virtual TMatrixD getDfDx(int idx_part, std::vector<TLorentzVector> init_particles, std::vector<TLorentzVector> fin_particles) = 0;
+
+    // Concatenate Bs of each fitted particle
+    TMatrixD constructBMatrix(std::vector<TLorentzVector> init_particles, std::vector<TLorentzVector> fin_particles)
     {
-
-        Int_t nparticles = _index_Cons_Particles.size();
+        Int_t nparticles = _index_cons_particles.size();
         Int_t nvars = _nvars * nparticles;
 
-        TMatrixD D_Mat(_nconstraints,nvars); 
+        TMatrixD d_mat(_nconstraints,nvars); 
 
         int idx_mat = 0;
-        for (auto idx_part : _index_Cons_Particles)
+        for (auto idx_part : _index_cons_particles)
         {
             TMatrixD dfdx = this->getDfDx(idx_part, init_particles, fin_particles);
-            D_Mat.SetSub(0, _nvars * idx_mat, dfdx);
+            d_mat.SetSub(0, _nvars * idx_mat, dfdx);
 
             idx_mat++;
         }
 
-        return D_Mat;
+        return d_mat;
     }
+
+    // the index of particles used in constraints
+    std::vector<int> _index_cons_particles;
+
+    // the number of constraints
+    int _nconstraints;
 };
 
 #endif

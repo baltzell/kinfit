@@ -6,14 +6,12 @@
 class KinConstraint_InvMass : public KinConstraint
 {
 public:
-    virtual ~KinConstraint_InvMass() {}
-    KinConstraint_InvMass() {}
 
     Double_t _inv_mass;
 
     KinConstraint_InvMass(std::vector<int> index_in_parts, Double_t in_inv_mass)
     {
-        _index_Cons_Particles = index_in_parts;
+        _index_cons_particles = index_in_parts;
         _nconstraints = 1;
         _inv_mass = in_inv_mass;
     }
@@ -23,8 +21,8 @@ public:
         TVectorD c;
         c.ResizeTo(_nconstraints);
 
-        TLorentzVector p_1 = fin_particles[_index_Cons_Particles[0]];
-        TLorentzVector p_2 = fin_particles[_index_Cons_Particles[1]];
+        TLorentzVector p_1 = fin_particles[_index_cons_particles[0]];
+        TLorentzVector p_2 = fin_particles[_index_cons_particles[1]];
 
         c[0] = ((p_1 + p_2).M2() - (_inv_mass * _inv_mass));
 
@@ -37,8 +35,9 @@ public:
         if (idx_part == 0)
             other_part = 1;
 
+        // FIXME:  Here we only support the invariant mass of 2 partices:
         TLorentzVector part_1 = fin_particles[idx_part];
-        TLorentzVector part_2 = fin_particles[other_part]; // This only support two particle invariant mass...
+        TLorentzVector part_2 = fin_particles[other_part];
 
         Double_t theta_1 = part_1.Theta();
         Double_t phi_1 = part_1.Phi();

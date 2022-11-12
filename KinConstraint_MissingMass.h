@@ -10,12 +10,9 @@ public:
     TLorentzVector _p_miss;
     Double_t _inv_mass;
 
-    virtual ~KinConstraint_MissingMass() {}
-    KinConstraint_MissingMass() {}
-
     KinConstraint_MissingMass(std::vector<int> index_in_parts, Double_t in_inv_mass)
     {
-        _index_Cons_Particles = index_in_parts;
+        _index_cons_particles = index_in_parts;
         _nconstraints = 1;
         _inv_mass = in_inv_mass;
     }
@@ -25,11 +22,11 @@ public:
         TVectorD c;
         c.ResizeTo(_nconstraints);
 
-        _p_miss.SetXYZT(0.0,0.0,0.0,0.0);
+        _p_miss.SetXYZT(0,0,0,0);
 
         for (auto p_in : init_particles)
             _p_miss += p_in;
-        for (auto idx : _index_Cons_Particles){
+        for (auto idx : _index_cons_particles){
             _p_miss -= fin_particles[idx];
         }
 
@@ -62,7 +59,8 @@ public:
 
         TMatrixD dfdx(_nconstraints, _nvars, *data);
 
-        dfdx *= -1.; //overall sign to match constraint definition
+        // overall sign to match constraint definition:
+        dfdx *= -1.;
 
         return dfdx;
     }

@@ -34,7 +34,6 @@ public:
         SetCovMatrix(_Cov_from_sigmas);
     }
 
-public:
     TLorentzVector GetVector() { return _vector; }
     TMatrixD GetCovMatrix() { return _Cov; }
     Double_t GetMass() { return _mass; }
@@ -43,7 +42,7 @@ public:
     void SetMass(Double_t in_mass) { _mass = in_mass; }
     void SetCovMatrix(TMatrixD in_Cov) { _Cov = in_Cov; }
 
-public:
+private:
     TLorentzVector _vector;
     Double_t _mass;
     TMatrixD _Cov = TMatrixD(3, 3);
