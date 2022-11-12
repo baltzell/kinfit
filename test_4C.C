@@ -32,7 +32,7 @@ auto smear(TLorentzVector *v)
     return v_out;
 };
 
-int main()
+int test_4C()
 {
     gStyle->SetOptStat(0);
     gStyle->SetOptFit(1111);
@@ -295,3 +295,8 @@ int main()
 
     return 0;
 }
+
+int main() {
+    return test_4C();
+}
+
