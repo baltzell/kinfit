@@ -45,10 +45,12 @@ public:
         Double_t p = fin_particles[idx_part].P();
         Double_t E = fin_particles[idx_part].E();
 
-        Double_t data[4][_nvars] = {{sin(theta) * cos(phi), p * cos(theta) * cos(phi), -p * sin(theta) * sin(phi)},
-                               {sin(theta) * sin(phi), p * cos(theta) * sin(phi), p * sin(theta) * cos(phi)},
-                               {cos(theta), -p * sin(theta), 0},
-                               {p / E, 0, 0}};
+        Double_t data[4][_nvars] = {
+            {sin(theta) * cos(phi),  p * cos(theta) * cos(phi), -p * sin(theta) * sin(phi)},
+            {sin(theta) * sin(phi),  p * cos(theta) * sin(phi),  p * sin(theta) * cos(phi)},
+            {cos(theta),            -p * sin(theta),             0},
+            {p / E,                  0,                          0}
+        };
 
         TMatrixD dfdx(_nconstraints, _nvars, *data);
 

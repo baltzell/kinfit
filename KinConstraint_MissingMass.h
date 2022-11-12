@@ -53,9 +53,13 @@ public:
         Double_t E_miss = _p_miss.E();
 
 
-        Double_t data[1][_nvars] = {{2.*(p_c*(E_miss)/E_c) -2.*( (px_c/p_c)*(px_miss) + (py_c/p_c)*(py_miss) + (pz_c/p_c)*(pz_miss)),
-        -2.*( p_c*cos(phi_c)*cos(theta_c)*(px_miss) + p_c*sin(phi_c)*cos(theta_c)*(py_miss) -1.* p_c*sin(theta_c)*(pz_miss)),
-        -2.*(-1.*p_c*sin(theta_c)*sin(phi_c)*(px_miss) + p_c*sin(theta_c)*cos(phi_c)*(py_miss))}};
+        Double_t data[1][_nvars] = {
+            {
+                2*(p_c*(E_miss)/E_c) - 2*( (px_c/p_c)*(px_miss) + (py_c/p_c)*(py_miss) + (pz_c/p_c)*(pz_miss)),
+               -2*( p_c*cos(phi_c)*cos(theta_c)*(px_miss) + p_c*sin(phi_c)*cos(theta_c)*(py_miss) - p_c*sin(theta_c)*(pz_miss)),
+               -2*(-p_c*sin(theta_c)*sin(phi_c)*(px_miss) + p_c*sin(theta_c)*cos(phi_c)*(py_miss))
+            }
+        };
 
         TMatrixD dfdx(_nconstraints, _nvars, *data);
 

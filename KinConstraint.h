@@ -2,8 +2,6 @@
 #define KinConstraint_h
 
 #include "KinParticle.h"
-#include <iostream>
-using namespace std;
 
 class KinConstraint
 {

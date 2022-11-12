@@ -10,8 +10,6 @@
 #include "KinConstraint_EnergyMomentum.h"
 #include "KinConstraint_InvMass.h"
 #include "KinConstraint_MissingMass.h"
-#include <iostream>
-using namespace std;
 
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////

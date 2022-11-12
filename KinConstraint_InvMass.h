@@ -57,9 +57,13 @@ public:
         Double_t py_2 = part_2.Py();
         Double_t pz_2 = part_2.Pz();
 
-        Double_t data[1][_nvars] = {{2.*(p_1*(E_1+E_2)/E_1) -2.*( (px_1/p_1)*(px_1+px_2) + (py_1/p_1)*(py_1+py_2) + (pz_1/p_1)*(pz_1+pz_2)),
-        -2.*( p_1*cos(phi_1)*cos(theta_1)*(px_1+px_2) + p_1*sin(phi_1)*cos(theta_1)*(py_1+py_2) -1.* p_1*sin(theta_1)*(pz_1+pz_2)),
-        -2.*(-1.*p_1*sin(theta_1)*sin(phi_1)*(px_1+px_2) + p_1*sin(theta_1)*cos(phi_1)*(py_1+py_2))}};
+        Double_t data[1][_nvars] = {
+            {
+             2*( p_1*(E_1+E_2)/E_1) - 2*( (px_1/p_1)*(px_1+px_2) + (py_1/p_1)*(py_1+py_2) + (pz_1/p_1)*(pz_1+pz_2)),
+            -2*( p_1*cos(phi_1)*cos(theta_1)*(px_1+px_2) + p_1*sin(phi_1)*cos(theta_1)*(py_1+py_2) - p_1*sin(theta_1)*(pz_1+pz_2)),
+            -2*(-p_1*sin(theta_1)*sin(phi_1)*(px_1+px_2) + p_1*sin(theta_1)*cos(phi_1)*(py_1+py_2))
+            }
+        };
 
         TMatrixD dfdx(_nconstraints, _nvars, *data);
 
