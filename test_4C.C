@@ -11,26 +11,7 @@
 #include "KinParticle.h"
 #include "TRandom3.h"
 
-#include <iostream>
-using namespace std;
-
-// absolute resolutions (GeV,radians,radians):
-const std::vector<double> RESO = {0.15, 0.02, 0.02};
-
-TRandom3 rndm3(0);
-
-auto smear(TLorentzVector *v)
-{
-    // smear by absolute resolutions:
-    const double p = rndm3.Gaus(0.0, RESO[0]) + v->P();
-    const double t = rndm3.Gaus(0.0, RESO[1]) + v->Theta();
-    const double h = rndm3.Gaus(0.0, RESO[2]) + v->Phi();
-
-    const double m = v->M();
-    TLorentzVector v_out;
-    v_out.SetXYZM(p * sin(t) * cos(h), p * sin(t) * sin(h), p * cos(t), m);
-    return v_out;
-};
+#include "test.h"
 
 int test_4C()
 {
@@ -39,9 +20,6 @@ int test_4C()
 
     const std::vector<double> masses = {0.938, 0.139, 0.139};
     const std::vector<TString> parts = {"p", "#pi^{+}", "#pi^{-}"};
-
-    const std::vector<TString> kines = {"P", "#theta", "#phi"};
-    const std::vector<TString> units = {"GeV", "rad", "rad"};
 
     TLorentzVector target(0.0, 0.0, 0.0, 0.938);
     TLorentzVector beam(0.0, 0.0, 10.6, 10.6);
@@ -76,17 +54,17 @@ int test_4C()
     std::vector<double> resolutions;
     for (int i = 0; i < parts.size(); i++)
     {
-        for (int j = 0; j < kines.size(); j++)
+        for (int j = 0; j < KINES.size(); j++)
         {
             resolutions.push_back(RESO[j]);
             h_pulls.push_back(new TH1F(Form("h_pulls_%d_%d", i, j),
-                                       Form(";%s_{%s} Pull", parts[i].Data(), kines[j].Data()), 201, -10, 10));
+                                       Form(";%s_{%s} Pull", parts[i].Data(), KINES[j].Data()), 201, -10, 10));
             h_fitres.push_back(new TH1F(Form("h_fitres_%d_%d", i, j),
-                                        Form(";%s_{%s} Residual [%s]", parts[i].Data(), kines[j].Data(), units[i].Data()), 201, -RESO[j] * 10, RESO[j] * 10));
+                                        Form(";%s_{%s} Residual [%s]", parts[i].Data(), KINES[j].Data(), UNITS[i].Data()), 201, -RESO[j] * 10, RESO[j] * 10));
             h_smeres.push_back(new TH1F(Form("h_smeres_%d_%d", i, j),
-                                        Form(";%s_{%s} Smearing [%s]", parts[i].Data(), kines[j].Data(), units[i].Data()), 201, -RESO[j] * 10, RESO[j] * 10));
+                                        Form(";%s_{%s} Smearing [%s]", parts[i].Data(), KINES[j].Data(), UNITS[i].Data()), 201, -RESO[j] * 10, RESO[j] * 10));
             h_fitgen.push_back(new TH1F(Form("h_fitgen%d_%d", i, j),
-                                        Form(";%s_{%s} Fit/Gen [%s]", parts[i].Data(), kines[j].Data(), units[i].Data()), 201, -RESO[j] * 10, RESO[j] * 10));
+                                        Form(";%s_{%s} Fit/Gen [%s]", parts[i].Data(), KINES[j].Data(), UNITS[i].Data()), 201, -RESO[j] * 10, RESO[j] * 10));
         }
     }
 
@@ -95,7 +73,7 @@ int test_4C()
     while (nevents < 10000)
     {
 
-        if (rndm3.Uniform(0.0, 1.0) < 0.5)
+        if (RNDM3.Uniform(0.0, 1.0) < 0.5)
         {
             std::vector<double> masses_BG = {0.938, 0.139, 0.139, 0.139};
             event.SetDecay(W, masses_BG.size(), &masses_BG[0]);
@@ -171,9 +149,9 @@ int test_4C()
 
         for (int ipart = 0; ipart < parts.size(); ipart++)
         {
-            for (int jkine = 0; jkine < kines.size(); jkine++)
+            for (int jkine = 0; jkine < KINES.size(); jkine++)
             {
-                h_pulls[ipart * kines.size() + jkine]->Fill(kin->GetPulls()[ipart * kines.size() + jkine]);
+                h_pulls[ipart * KINES.size() + jkine]->Fill(kin->GetPulls()[ipart * KINES.size() + jkine]);
             }
             h_fitres[ipart * 3 + 0]->Fill(parts_fit[ipart].Vect().Mag() - parts_sme[ipart].Vect().Mag());
             h_fitres[ipart * 3 + 1]->Fill(parts_fit[ipart].Theta() - parts_sme[ipart].Theta());
@@ -259,10 +237,10 @@ int test_4C()
     c_pulls->Divide(3, parts.size());
     for (int ipart = 0; ipart < parts.size(); ipart++)
     {
-        for (int jkine = 0; jkine < kines.size(); jkine++)
+        for (int jkine = 0; jkine < KINES.size(); jkine++)
         {
-            c_pulls->cd(ipart * kines.size() + jkine + 1);
-            h_pulls[ipart * kines.size() + jkine]->Fit("gaus", fitopt);
+            c_pulls->cd(ipart * KINES.size() + jkine + 1);
+            h_pulls[ipart * KINES.size() + jkine]->Fit("gaus", fitopt);
         }
     }
     c_pulls->SaveAs("c_pulls.pdf");
@@ -271,10 +249,10 @@ int test_4C()
     c_res->Divide(3, 3);
     for (int ipart = 0; ipart < parts.size(); ipart++)
     {
-        for (int jkine = 0; jkine < kines.size(); jkine++)
+        for (int jkine = 0; jkine < KINES.size(); jkine++)
         {
-            c_res->cd(ipart * kines.size() + jkine + 1);
-            h_fitres[ipart * kines.size() + jkine]->Fit("gaus", fitopt);
+            c_res->cd(ipart * KINES.size() + jkine + 1);
+            h_fitres[ipart * KINES.size() + jkine]->Fit("gaus", fitopt);
         }
     }
     c_pulls->SaveAs("c_res.pdf");
@@ -283,12 +261,12 @@ int test_4C()
     c_sme->Divide(3, 3);
     for (int ipart = 0; ipart < parts.size(); ipart++)
     {
-        for (int jkine = 0; jkine < kines.size(); jkine++)
+        for (int jkine = 0; jkine < KINES.size(); jkine++)
         {
-            c_sme->cd(ipart * kines.size() + jkine + 1);
-            h_smeres[ipart * kines.size() + jkine]->Fit("gaus", fitopt);
-            h_fitgen[ipart * kines.size() + jkine]->SetLineColor(kGreen);
-            h_fitgen[ipart * kines.size() + jkine]->Draw("same");
+            c_sme->cd(ipart * KINES.size() + jkine + 1);
+            h_smeres[ipart * KINES.size() + jkine]->Fit("gaus", fitopt);
+            h_fitgen[ipart * KINES.size() + jkine]->SetLineColor(kGreen);
+            h_fitgen[ipart * KINES.size() + jkine]->Draw("same");
         }
     }
     c_sme->SaveAs("c_sme.pdf");
