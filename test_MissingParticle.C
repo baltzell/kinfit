@@ -18,8 +18,9 @@ int test_MissingParticle()
     gStyle->SetOptStat(0);
     gStyle->SetOptFit(1111);
 
-    const std::vector<double> masses = {0.139, 0.139, 0.938};
     const std::vector<TString> parts = {"#pi^{+}", "#pi^{-}", "p"};
+    const std::vector<double> masses = {0.139, 0.139, 0.938};
+    const std::vector<double> masses_bg = {0.139, 0.139, 0.938, 0.000};
 
     TLorentzVector target(0.0, 0.0, 0.0, 0.938);
     TLorentzVector beam(0.0, 0.0, 10.6, 10.6);
@@ -61,8 +62,7 @@ int test_MissingParticle()
 
         if (RNDM3.Uniform(0.0, 1.0) < 0.1)
         {
-            std::vector<double> masses_BG = {0.139, 0.139, 0.938, 0.000};
-            event.SetDecay(W, masses_BG.size(), &masses_BG[0]);
+            event.SetDecay(W, masses_bg.size(), &masses_bg[0]);
             is_BG = true;
         }
         else

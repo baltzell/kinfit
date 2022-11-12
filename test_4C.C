@@ -18,8 +18,9 @@ int test_4C()
     gStyle->SetOptStat(0);
     gStyle->SetOptFit(1111);
 
-    const std::vector<double> masses = {0.938, 0.139, 0.139};
     const std::vector<TString> parts = {"p", "#pi^{+}", "#pi^{-}"};
+    const std::vector<double> masses = {0.938, 0.139, 0.139};
+    const std::vector<double> masses_bg = {0.938, 0.139, 0.139, 0.139};
 
     TLorentzVector target(0.0, 0.0, 0.0, 0.938);
     TLorentzVector beam(0.0, 0.0, 10.6, 10.6);
@@ -75,8 +76,7 @@ int test_4C()
 
         if (RNDM3.Uniform(0.0, 1.0) < 0.5)
         {
-            std::vector<double> masses_BG = {0.938, 0.139, 0.139, 0.139};
-            event.SetDecay(W, masses_BG.size(), &masses_BG[0]);
+            event.SetDecay(W, masses_bg.size(), &masses_bg[0]);
             is_BG = true;
         }
         else
