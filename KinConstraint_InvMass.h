@@ -20,6 +20,7 @@ public:
 
     TVectorD getConstraint(std::vector<TLorentzVector> init_particles, std::vector<TLorentzVector> fin_particles) override
     {
+        // the first two particles are the invariant mass constraint:
         TLorentzVector p_1 = fin_particles[_index_cons_particles[0]];
         TLorentzVector p_2 = fin_particles[_index_cons_particles[1]];
 
