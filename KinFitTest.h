@@ -207,7 +207,7 @@ public:
         _h_lik_Signal->Draw();
         _h_lik_BG->SetLineColor(kBlue);
         _h_lik_BG->Draw("same");
-        c_missing->SaveAs(Form("missing_%s.pdf",_name.Data()));
+        c_missing->Print(Form("%s.pdf(",_name.Data()));
 
         auto c_constraint = new TCanvas("c_constraint", "c_constraint", 800, 2300);
         c_constraint->Divide(1, 4);
@@ -244,7 +244,7 @@ public:
         _h_Pz_fit->Draw("hist same");
         _h_Pz_sme->SetLineColor(kRed);
         _h_Pz_sme->Draw("hist same");
-        c_constraint->SaveAs(Form("constraint_%s.pdf",_name.Data()));
+        c_constraint->SaveAs(Form("%s.pdf",_name.Data()));
 
         TString fitopt = "Q";
         auto c_pulls = new TCanvas("can2", "Pulls", 900, int(float(1200) * _parts.size() / 3));
@@ -257,7 +257,7 @@ public:
                 _h_pulls[ipart * KINES.size() + jkine]->Fit("gaus", fitopt);
             }
         }
-        c_pulls->SaveAs(Form("pulls_%s.pdf",_name.Data()));
+        c_pulls->SaveAs(Form("%s.pdf",_name.Data()));
 
         auto c_res = new TCanvas("can3", "Residuals", 900, 600);
         c_res->Divide(3, 3);
@@ -269,7 +269,7 @@ public:
                 _h_fitres[ipart * KINES.size() + jkine]->Fit("gaus", fitopt);
             }
         }
-        c_pulls->SaveAs(Form("resolution_%s.pdf",_name.Data()));
+        c_pulls->SaveAs(Form("%s.pdf",_name.Data()));
 
         auto c_sme = new TCanvas("can4", "Smearing", 900, 600);
         c_sme->Divide(3, 3);
@@ -283,7 +283,7 @@ public:
                 _h_fitgen[ipart * KINES.size() + jkine]->Draw("same");
             }
         }
-        c_sme->SaveAs(Form("smearing_%s.pdf",_name.Data()));
+        c_sme->SaveAs(Form("%s.pdf)",_name.Data()));
 
     }
 
