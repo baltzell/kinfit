@@ -181,7 +181,7 @@ public:
         gStyle->SetOptStat(0);
         gStyle->SetOptFit(1111);
 
-        auto c_missing = new TCanvas("can1", "Summary", 800, 1500);
+        auto c_missing = new TCanvas("can1", "Summary", 800, 1200);
         c_missing->Divide(1, 3);
         c_missing->cd(1);
         gPad->SetLogy();
@@ -209,7 +209,7 @@ public:
         _h_lik_BG->Draw("same");
         c_missing->Print(Form("%s.pdf(",_name.Data()));
 
-        auto c_constraint = new TCanvas("c_constraint", "c_constraint", 800, 2300);
+        auto c_constraint = new TCanvas("c_constraint", "Constraints", 800, 1200);
         c_constraint->Divide(1, 4);
         c_constraint->cd(1);
         gPad->SetLogy();
@@ -247,7 +247,7 @@ public:
         c_constraint->SaveAs(Form("%s.pdf",_name.Data()));
 
         TString fitopt = "Q";
-        auto c_pulls = new TCanvas("can2", "Pulls", 900, int(float(1200) * _parts.size() / 3));
+        auto c_pulls = new TCanvas("can2", "Pulls", 900, int(float(1200) * (_parts.size()-_missing) / 3));
         c_pulls->Divide(3, _parts.size());
         for (int ipart = 0; ipart < _parts.size()-_missing; ipart++)
         {
@@ -259,7 +259,7 @@ public:
         }
         c_pulls->SaveAs(Form("%s.pdf",_name.Data()));
 
-        auto c_res = new TCanvas("can3", "Residuals", 900, 600);
+        auto c_res = new TCanvas("can3", "Residuals", 900, int(float(1200) * (_parts.size()-_missing) / 3));
         c_res->Divide(3, 3);
         for (int ipart = 0; ipart < _parts.size()-_missing; ipart++)
         {
@@ -271,7 +271,7 @@ public:
         }
         c_pulls->SaveAs(Form("%s.pdf",_name.Data()));
 
-        auto c_sme = new TCanvas("can4", "Smearing", 900, 600);
+        auto c_sme = new TCanvas("can4", "Smearing", 900, int(float(1200) * (_parts.size()-_missing) / 3));
         c_sme->Divide(3, 3);
         for (int ipart = 0; ipart < _parts.size()-_missing; ipart++)
         {
@@ -279,8 +279,8 @@ public:
             {
                 c_sme->cd(ipart * KINES.size() + jkine + 1);
                 _h_smeres[ipart * KINES.size() + jkine]->Fit("gaus", fitopt);
-                _h_fitgen[ipart * KINES.size() + jkine]->SetLineColor(kGreen);
-                _h_fitgen[ipart * KINES.size() + jkine]->Draw("same");
+                //_h_fitgen[ipart * KINES.size() + jkine]->SetLineColor(kGreen);
+                //_h_fitgen[ipart * KINES.size() + jkine]->Draw("same");
             }
         }
         c_sme->SaveAs(Form("%s.pdf)",_name.Data()));
