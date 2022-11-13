@@ -18,7 +18,7 @@ int test_MissingParticle(const int max_events=10000, const float bg_fraction=0.1
     TGenPhaseSpace event;
     event.SetDecay(W, masses.size(), &masses[0]);
     
-    KinFitTest test("MM", parts, W, 1);
+    KinFitTest test("MM", parts, W, 1, missmass);
 
     std::vector<double> resolutions;
     std::vector<int> constraint_idx;

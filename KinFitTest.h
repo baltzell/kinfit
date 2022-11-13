@@ -67,7 +67,7 @@ public:
     std::vector<TH1*> _h_smeres;
     std::vector<TH1*> _h_fitgen;
 
-    KinFitTest(TString name, std::vector<TString> parts, TLorentzVector W, int missing=0)
+    KinFitTest(TString name, std::vector<TString> parts, TLorentzVector W, int missing=0, float missmass=0)
         :
         _name(name),
         _parts(parts),
@@ -78,7 +78,7 @@ public:
         _h_lik_Signal = new TH1F("h_lik_Signal", ";Confidence Level", 100, 0, 1);
         _h_lik_BG = new TH1F("h_lik_BG", ";Confidence Level", 100, 0, 1);
 
-        _h_mm_gen = new TH1F("h_mm_gen", ";Missing Mass [GeV^{2}]", 201, -0.5 * (parts.size() - 1), 0.5 * (parts.size() - 1));
+        _h_mm_gen = new TH1F("h_mm_gen", ";Missing Mass [GeV^{2}]", 201, missmass - 0.5 * (parts.size() - 1), missmass + 0.5 * (parts.size() - 1));
         _h_mm_sme = (TH1 *)_h_mm_gen->Clone("h_mm_sme");
         _h_mm_fit = (TH1 *)_h_mm_gen->Clone("h_mm_fit");
 
@@ -186,6 +186,8 @@ public:
         c_missing->cd(1);
         gPad->SetLogy();
         _h_mm_gen->GetYaxis()->SetRangeUser(1., _h_mm_gen->GetMaximum());
+        _h_mm_gen->SetFillStyle(1001);
+        _h_mm_gen->SetFillColor(kBlue);
         _h_mm_gen->Draw("hist");
         _h_mm_fit->SetLineColor(kGreen);
         _h_mm_fit->SetLineWidth(2);
@@ -209,42 +211,44 @@ public:
         _h_lik_BG->Draw("same");
         c_missing->Print(Form("%s.pdf(",_name.Data()));
 
-        auto c_constraint = new TCanvas("c_constraint", "Constraints", 800, 1200);
-        c_constraint->Divide(1, 4);
-        c_constraint->cd(1);
-        gPad->SetLogy();
-        _h_E_gen->Draw("hist");
-        _h_E_fit->SetLineColor(kGreen);
-        _h_E_fit->SetLineWidth(2);
-        _h_E_fit->Draw("hist same");
-        _h_E_sme->SetLineColor(kRed);
-        _h_E_sme->Draw("hist same");
-        legend->Draw("same ");
-        c_constraint->cd(2);
-        gPad->SetLogy();
-        _h_Px_gen->Draw("hist");
-        _h_Px_fit->SetLineColor(kGreen);
-        _h_Px_fit->SetLineWidth(2);
-        _h_Px_fit->Draw("hist same");
-        _h_Px_sme->SetLineColor(kRed);
-        _h_Px_sme->Draw("hist same");
-        c_constraint->cd(3);
-        gPad->SetLogy();
-        _h_Py_gen->Draw("hist");
-        _h_Py_fit->SetLineColor(kGreen);
-        _h_Py_fit->SetLineWidth(2);
-        _h_Py_fit->Draw("hist same");
-        _h_Py_sme->SetLineColor(kRed);
-        _h_Py_sme->Draw("hist same");
-        c_constraint->cd(4);
-        gPad->SetLogy();
-        _h_Pz_gen->Draw("hist");
-        _h_Pz_fit->SetLineColor(kGreen);
-        _h_Pz_fit->SetLineWidth(2);
-        _h_Pz_fit->Draw("hist same");
-        _h_Pz_sme->SetLineColor(kRed);
-        _h_Pz_sme->Draw("hist same");
-        c_constraint->SaveAs(Form("%s.pdf",_name.Data()));
+        if (_missing==0) {
+            auto c_constraint = new TCanvas("c_constraint", "Constraints", 800, 1200);
+            c_constraint->Divide(1, 4);
+            c_constraint->cd(1);
+            gPad->SetLogy();
+            _h_E_gen->Draw("hist");
+            _h_E_fit->SetLineColor(kGreen);
+            _h_E_fit->SetLineWidth(2);
+            _h_E_fit->Draw("hist same");
+            _h_E_sme->SetLineColor(kRed);
+            _h_E_sme->Draw("hist same");
+            legend->Draw("same ");
+            c_constraint->cd(2);
+            gPad->SetLogy();
+            _h_Px_gen->Draw("hist");
+            _h_Px_fit->SetLineColor(kGreen);
+            _h_Px_fit->SetLineWidth(2);
+            _h_Px_fit->Draw("hist same");
+            _h_Px_sme->SetLineColor(kRed);
+            _h_Px_sme->Draw("hist same");
+            c_constraint->cd(3);
+            gPad->SetLogy();
+            _h_Py_gen->Draw("hist");
+            _h_Py_fit->SetLineColor(kGreen);
+            _h_Py_fit->SetLineWidth(2);
+            _h_Py_fit->Draw("hist same");
+            _h_Py_sme->SetLineColor(kRed);
+            _h_Py_sme->Draw("hist same");
+            c_constraint->cd(4);
+            gPad->SetLogy();
+            _h_Pz_gen->Draw("hist");
+            _h_Pz_fit->SetLineColor(kGreen);
+            _h_Pz_fit->SetLineWidth(2);
+            _h_Pz_fit->Draw("hist same");
+            _h_Pz_sme->SetLineColor(kRed);
+            _h_Pz_sme->Draw("hist same");
+            c_constraint->SaveAs(Form("%s.pdf",_name.Data()));
+        }
 
         TString fitopt = "Q";
         auto c_pulls = new TCanvas("can2", "Pulls", 900, int(float(1200) * (_parts.size()-_missing) / 3));
