@@ -4,7 +4,7 @@
 #include "KinConstraint.h"
 
 // WARNING:  This only supports one invariant mass with two daughters.
-// WARNING:  A naive merging of KC_MissingMass and KC_InvMass ...
+// WARNING:  A naive merging of KC_MissingMass and KC_InvMass and untested ...
 
 class KinConstraint_MissAndInvMass : public KinConstraint
 {
@@ -14,7 +14,7 @@ public:
     double _inv_mass;
     double _miss_mass;
 
-    KinConstraint_MissingMass(std::vector<int> index_in_parts, double in_inv_mass, double in_miss_mass)
+    KinConstraint_MissAndInvMass(std::vector<int> index_in_parts, double in_inv_mass, double in_miss_mass)
     {
         _index_cons_particles = index_in_parts;
         _nconstraints = 2;
