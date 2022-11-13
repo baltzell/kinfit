@@ -1,7 +1,6 @@
 #include <vector>
 #include "TLorentzVector.h"
 #include "TGenPhaseSpace.h"
-#include "TCanvas.h"
 #include "KinFitter.h"
 #include "KinParticle.h"
 #include "KinFitTest.h"
@@ -62,6 +61,11 @@ int test_MissAndInv(const int max_events=10000, const float bg_fraction=0.1)
             parts_sme.push_back(sme_vector);
             kin_parts_sme.push_back(KinParticle(sme_vector, masses_decay[ipart], RESO));
         }
+
+        parts_gen.push_back(*(event_intermediate.GetDecay(parts_intermediate.size()-1)));
+        TLorentzVector sme_vector = smear(event_intermediate.GetDecay(parts_intermediate.size()-1));
+        parts_sme.push_back(sme_vector);
+        kin_parts_sme.push_back(KinParticle(sme_vector, masses_intermediate[masses_intermediate.size()-1], RESO));
 
         nevents++;
 

@@ -1,7 +1,6 @@
 #include <vector>
 #include "TLorentzVector.h"
 #include "TGenPhaseSpace.h"
-#include "TCanvas.h"
 #include "KinFitter.h"
 #include "KinParticle.h"
 #include "KinFitTest.h"
