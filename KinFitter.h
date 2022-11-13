@@ -115,7 +115,7 @@ public:
         _y = constructTVecFrom4Vecs(_Ps_y);
         _eta = _y;
     }
-   
+    
     void Add_EnergyMomentum_Constraint(std::vector<int> index_P_Cons)
     {
         KinConstraint_EnergyMomentum *in_Cons = new KinConstraint_EnergyMomentum(index_P_Cons);

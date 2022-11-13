@@ -13,7 +13,7 @@
 
 #include "test.h"
 
-int test_4C()
+int test_4C(const int max_events=10000, const float bg_fraction=0.1)
 {
     gStyle->SetOptStat(0);
     gStyle->SetOptFit(1111);
@@ -53,8 +53,10 @@ int test_4C()
 
     std::vector<TH1 *> h_pulls, h_fitres, h_smeres, h_fitgen;
     std::vector<double> resolutions;
+    std::vector<int> constraint_idx;
     for (int i = 0; i < parts.size(); i++)
     {
+        constraint_idx.push_back(i);
         for (int j = 0; j < KINES.size(); j++)
         {
             resolutions.push_back(RESO[j]);
@@ -71,10 +73,10 @@ int test_4C()
 
     bool is_BG = false;
     int nevents = 0;
-    while (nevents < 10000)
+    while (nevents < max_events)
     {
 
-        if (RNDM3.Uniform(0.0, 1.0) < 0.5)
+        if (RNDM3.Uniform(0.0, 1.0) < bg_fraction)
         {
             event.SetDecay(W, masses_bg.size(), &masses_bg[0]);
             is_BG = true;
@@ -104,8 +106,8 @@ int test_4C()
 
         nevents++;
 
-        auto kin = new KinFitter({KinParticle(target, target.M()), KinParticle(beam, beam.M())}, kin_parts_sme);
-        kin->Add_EnergyMomentum_Constraint({0, 1, 2});
+        auto kin = new KinFitter({KinParticle(target), KinParticle(beam)}, kin_parts_sme);
+        kin->Add_EnergyMomentum_Constraint(constraint_idx);
         kin->DoFitting(100);
 
         std::vector<TLorentzVector> parts_fit = kin->GetFitted4Vectors();

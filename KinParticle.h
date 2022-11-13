@@ -21,6 +21,12 @@ public:
     {
     }
 
+    KinParticle(TLorentzVector in_vector)
+        : _vector(in_vector),
+          _mass(in_vector.M())
+    {
+    }
+
     KinParticle(TLorentzVector in_vector, double in_mass, std::vector<Double_t> in_sigmas)
         : _vector(in_vector),
           _mass(in_mass)
