@@ -29,25 +29,20 @@ int test_InvMass(const int max_events=10000, const float bg_fraction=0.1)
         }
     }
 
-    bool is_BG = false;
-    TLorentzVector BG;
-
     int nevents = 0;
     while (nevents < max_events)
     {
+        const bool is_background = RNDM3.Uniform(0,1) < bg_fraction;
 
-        if (RNDM3.Uniform(0.0, 1.0) < bg_fraction)
+        if (is_background)
         {
             float mass = RNDM3.Uniform(2.5, 3.5);
+            TLorentzVector BG;
             BG.SetXYZM(0.0, 0.0, 5., mass);
             event.SetDecay(BG, masses.size(), &masses[0]);
-            is_BG = true;
         }
         else
-        {
             event.SetDecay(JPsi, masses.size(), &masses[0]);
-            is_BG = false;
-        }
 
         auto weight = event.Generate();
 
@@ -69,8 +64,7 @@ int test_InvMass(const int max_events=10000, const float bg_fraction=0.1)
         kin->Add_InvMass_Constraint(constraint_idx, 3.0);
         kin->DoFitting(100);
 
-        test.fill(kin, parts_gen, parts_sme, weight, is_BG);
-
+        test.fill(kin, parts_gen, parts_sme, weight, is_background);
     }
 
     test.plot();

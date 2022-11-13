@@ -30,21 +30,15 @@ int test_4C(const int max_events=10000, const float bg_fraction=0.1)
         }
     }
 
-    bool is_background = false;
     int nevents = 0;
     while (nevents < max_events)
     {
+        const bool is_background = RNDM3.Uniform(0,1) < bg_fraction;
 
-        if (RNDM3.Uniform(0.0, 1.0) < bg_fraction)
-        {
+        if (is_background)
             event.SetDecay(W, masses_bg.size(), &masses_bg[0]);
-            is_background = true;
-        }
         else
-        {
             event.SetDecay(W, masses.size(), &masses[0]);
-            is_background = false;
-        }
 
         auto weight = event.Generate();
 

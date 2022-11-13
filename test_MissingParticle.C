@@ -32,28 +32,21 @@ int test_MissingParticle(const int max_events=10000, const float bg_fraction=0.1
         }
     }
 
-    bool is_BG = false;
-
     int nevents = 0;
     while (nevents < max_events)
     {
 
-        if (RNDM3.Uniform(0.0, 1.0) < bg_fraction)
-        {
+        const bool is_background = RNDM3.Uniform(0,1) < bg_fraction;
+
+        if (is_background) 
             event.SetDecay(W, masses_bg.size(), &masses_bg[0]);
-            is_BG = true;
-        }
         else
-        {
             event.SetDecay(W, masses.size(), &masses[0]);
-            is_BG = false;
-        }
 
         auto weight = event.Generate();
 
         std::vector<TLorentzVector> parts_gen;
         std::vector<TLorentzVector> parts_sme;
-
         std::vector<KinParticle> kin_parts_sme;
 
         for (int ipart = 0; ipart < parts.size() - 1; ++ipart)
@@ -61,7 +54,6 @@ int test_MissingParticle(const int max_events=10000, const float bg_fraction=0.1
             parts_gen.push_back(*(event.GetDecay(ipart)));
             TLorentzVector sme_vector = smear(event.GetDecay(ipart));
             parts_sme.push_back(sme_vector);
-
             kin_parts_sme.push_back(KinParticle(sme_vector, masses[ipart], RESO));
         }
 
@@ -71,7 +63,7 @@ int test_MissingParticle(const int max_events=10000, const float bg_fraction=0.1
         kin->Add_MissingMass_Constraint(constraint_idx, 0.938);
         kin->DoFitting(100);
 
-        test.fill(kin, parts_gen, parts_sme, weight, is_BG);
+        test.fill(kin, parts_gen, parts_sme, weight, is_background);
     }
 
     test.plot();
