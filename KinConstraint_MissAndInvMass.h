@@ -1,6 +1,5 @@
-
-#ifndef KinConstraint_MissingMass_h
-#define KinConstraint_MissingMass_h
+#ifndef KinConstraint_MissAndInvMass_h
+#define KinConstraint_MissAndInvMass_h
 
 #include "KinConstraint.h"
 
