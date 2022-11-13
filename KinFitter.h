@@ -155,7 +155,7 @@ public:
         int n_iter = 0;
 
         // the number of consecutive iterations that have resulted in reversal:
-        int iter_reversed = 0;
+        int n_iter_reversed = 0;
 
         while (n_iter < max_iter)
         {
@@ -168,16 +168,16 @@ public:
             // the new chi2 is worse than the previous one,
             // so increment the reversal counter:
             if (_chi2 > chi2_previous)
-                iter_reversed++;
+                n_iter_reversed++;
 
             // the new chi2 is better than the previous one,
             // so zero the reversal counter:
             else if (_chi2 < chi2_previous && n_iter > 0)
-                iter_reversed = 0;
+                n_iter_reversed = 0;
 
             // we've now reversed on two successive iterations,
             // so just stop iterating and restore the previous iteration:
-            if (iter_reversed > 1 && n_iter > 0)
+            if (n_iter_reversed > 1 && n_iter > 0)
             {
                 UndoFit();
                 break;
