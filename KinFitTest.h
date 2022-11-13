@@ -126,7 +126,7 @@ public:
             missing_sme -= parts_sme[ipart];
             missing_fit -= parts_fit[ipart];
             
-            for (int jkine = 0; jkine < KINES.size(); jkine++)
+            for (int jkine = 0; jkine < KINES.size() && kin->GetConfidenceLevel()>0.01; jkine++)
             {
                 _h_pulls[ipart * KINES.size() + jkine]->Fill(kin->GetPulls()[ipart * KINES.size() + jkine]);
             }
