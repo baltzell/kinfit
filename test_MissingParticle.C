@@ -8,11 +8,12 @@
 
 int test_MissingParticle(const int max_events=10000, const float bg_fraction=0.1)
 {
+    const double missmass = 0.938;
     const std::vector<TString> parts = {"#pi^{+}", "#pi^{-}", "p"};
-    const std::vector<double> masses = {0.139, 0.139, 0.938};
-    const std::vector<double> masses_bg = {0.139, 0.139, 0.938, 0.000};
+    const std::vector<double> masses = {0.139, 0.139, missmass};
+    const std::vector<double> masses_bg = {0.139, 0.139, missmass, 0.000};
 
-    TLorentzVector target(0.0, 0.0, 0.0, 0.938);
+    TLorentzVector target(0.0, 0.0, 0.0, missmass);
     TLorentzVector beam(0.0, 0.0, 10.6, 10.6);
     TLorentzVector W = beam + target;
     TGenPhaseSpace event;
@@ -59,7 +60,7 @@ int test_MissingParticle(const int max_events=10000, const float bg_fraction=0.1
         nevents++;
 
         auto kin = new KinFitter({KinParticle(target), KinParticle(beam)}, kin_parts_sme);
-        kin->Add_MissingMass_Constraint(constraint_idx, 0.938);
+        kin->Add_MissingMass_Constraint(constraint_idx, missmass);
         kin->DoFitting(100);
 
         test.fill(kin, parts_gen, parts_sme, weight, is_background);
