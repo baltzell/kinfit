@@ -1,11 +1,13 @@
 #ifndef KinFitTest_h
 #define KinFitTest_h
 
+#include <vector>
 #include "TH1F.h"
 #include "TCanvas.h"
 #include "TLegend.h"
 #include "TStyle.h"
 #include "TRandom3.h"
+#include "KinFitter.h"
 
 // absolute resolutions (GeV,radians,radians):
 const std::vector<double> RESO = {0.15, 0.02, 0.02};
