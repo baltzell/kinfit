@@ -1,6 +1,8 @@
 #ifndef KinFitter_h
 #define KinFitter_h
 
+#include <limits>
+
 #include "TVectorD.h"
 #include "TMatrixD.h"
 #include "TLorentzVector.h"
@@ -12,11 +14,9 @@
 #include "KinConstraint_MissAndInvMass.h"
 
 
-/////////////////////////////////////////////////////////////////////////////////////////////////////
 //Kinfitter class
 //This class implemtent the kinematic fitter describe in https://www.jlab.org/Hall-B/notes/clas_notes03/03-017.pdf
 //The variable names match the notation used in the note and are refered to using the equation number of the note.
-/////////////////////////////////////////////////////////////////////////////////////////////////////
 
 class KinFitter
 {
@@ -35,8 +35,6 @@ private:
     int _nvars_y;
     int _nconstraints;
     int _ndf;
-
-    int n_iter = 100;
 
     TVectorD _eta; //Measured vector Eq.1
     TVectorD _sigma2_etas; //Measured errors for each measured quantities Eq.19
@@ -148,51 +146,49 @@ public:
         _ndf = 2;
     }
 
-
-    void DoFitting(int in_nter = 100)
+    void DoFitting(const int max_iter = 100)
     {
-        _chi2 = 10000;
+        // initialize the current chi2 with the largest possible value:
+        _chi2 = std::numeric_limits<double>::max();
 
-        n_iter = in_nter;
-        int iter = 0;
-        int iter_inc = 0;
-        while (iter < n_iter)
+        // the number of iterations:
+        int n_iter = 0;
+
+        // the number of consecutive iterations that have resulted in reversal:
+        int iter_reversed = 0;
+
+        while (n_iter < max_iter)
         {
+            // store the chi2 from the previous iteration:
+            const double chi2_previous = _chi2;
 
-            double chi20 = _chi2;
-
-            /////////////////////////////////////////
-            //The math is done here
-            /////////////////////////////////////////
+            // math is done here:
             ProcessFit();
 
-            /////////////////////////////////////////
-            // Stop conditions of the fit
-            /////////////////////////////////////////
-            if (_chi2 > chi20)
-                iter_inc++;
+            // the new chi2 is worse than the previous one,
+            // so increment the reversal counter:
+            if (_chi2 > chi2_previous)
+                iter_reversed++;
 
-            if (_chi2 < chi20 && iter > 0)
-                iter_inc = 0;
+            // the new chi2 is better than the previous one,
+            // so zero the reversal counter:
+            else if (_chi2 < chi2_previous && n_iter > 0)
+                iter_reversed = 0;
 
-            if (iter_inc > 1)
+            // we've now reversed on two successive iterations,
+            // so just stop iterating and restore the previous iteration:
+            if (iter_reversed > 1 && n_iter > 0)
             {
-                if (iter > 0)
-                {
-                    UndoFit();
-                    break;
-                }
+                UndoFit();
+                break;
             }
 
-            if (std::abs(_chi2 - chi20) / chi20 < 0.001)
-            {
-                if (iter > 0)
-                {
-                    break;
-                }
-            }
+            // the relative change in the chi2 is tiny,
+            // so just stop iterating and keep the current iteration:
+            if (std::abs(_chi2 - chi2_previous) / chi2_previous < 0.001 && n_iter > 0)
+                break;
 
-            iter++;
+            n_iter++;
         }
 
         /////////////////////////////////////////
