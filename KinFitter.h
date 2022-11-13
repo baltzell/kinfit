@@ -10,6 +10,7 @@
 #include "KinConstraint_EnergyMomentum.h"
 #include "KinConstraint_InvMass.h"
 #include "KinConstraint_MissingMass.h"
+#include "KinConstraint_MissAndInvMass.h"
 
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -139,6 +140,15 @@ public:
         _nconstraints = 1;
         _ndf = 1;
     }
+    
+    void Add_MissAndInvMass_Constraint(std::vector<int> index_P_Cons, double in_mass, double in_miss_mass)
+    {
+        KinConstraint_MissAndInvMass *in_Cons = new KinConstraint_MissAndInvMass(index_P_Cons, in_mass, in_miss_mass);
+        _Cons.push_back(in_Cons);
+        _nconstraints = 2;
+        _ndf = 2;
+    }
+
 
     void DoFitting(int in_nter = 100)
     {
