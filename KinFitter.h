@@ -4,7 +4,6 @@
 #include "TVectorD.h"
 #include "TMatrixD.h"
 #include "TLorentzVector.h"
-#include "TH1D.h"
 
 #include "KinParticle.h"
 #include "KinConstraint_EnergyMomentum.h"
@@ -170,10 +169,10 @@ public:
             /////////////////////////////////////////
             // Stop conditions of the fit
             /////////////////////////////////////////
-            if (_chi2 - chi20 > 0.)
+            if (_chi2 > chi20)
                 iter_inc++;
 
-            if (_chi2 - chi20 < 0. && iter > 0)
+            if (_chi2 < chi20 && iter > 0)
                 iter_inc = 0;
 
             if (iter_inc > 1)
@@ -185,7 +184,7 @@ public:
                 }
             }
 
-            if (abs(_chi2 - chi20) / chi20 < 0.001)
+            if (std::abs(_chi2 - chi20) / chi20 < 0.001)
             {
                 if (iter > 0)
                 {
