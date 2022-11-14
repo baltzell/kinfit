@@ -15,8 +15,8 @@ int test_MissAndInv(const int max_events=10000, const float bg_fraction=0.1)
     const std::vector<TString> parts_decay = {"e^{+}", "e^{-}"};
 
     const std::vector<double> masses_intermediate = {invmass, missmass};
-    const std::vector<double> masses_final = {0.001, 0.001, missmass};
-    const std::vector<double> masses_decay = {0.001, 0.001};
+    const std::vector<double> masses_final = {0.01, 0.01, missmass};
+    const std::vector<double> masses_decay = {0.01, 0.01};
 
     TLorentzVector target(0.0, 0.0, 0.0, missmass);
     TLorentzVector beam(0.0, 0.0, 10.6, 10.6);
@@ -54,7 +54,7 @@ int test_MissAndInv(const int max_events=10000, const float bg_fraction=0.1)
         std::vector<TLorentzVector> parts_sme;
         std::vector<KinParticle> kin_parts_sme;
 
-        for (int ipart = 0; ipart < parts_decay.size() - 1; ++ipart)
+        for (int ipart = 0; ipart < parts_decay.size(); ++ipart)
         {
             parts_gen.push_back(*(decay.GetDecay(ipart)));
             TLorentzVector sme_vector = smear(decay.GetDecay(ipart));
@@ -62,10 +62,10 @@ int test_MissAndInv(const int max_events=10000, const float bg_fraction=0.1)
             kin_parts_sme.push_back(KinParticle(sme_vector, masses_decay[ipart], RESO));
         }
 
-        parts_gen.push_back(*(event_intermediate.GetDecay(parts_intermediate.size()-1)));
-        TLorentzVector sme_vector = smear(event_intermediate.GetDecay(parts_intermediate.size()-1));
-        parts_sme.push_back(sme_vector);
-        kin_parts_sme.push_back(KinParticle(sme_vector, masses_intermediate[masses_intermediate.size()-1], RESO));
+        //parts_gen.push_back(*(event_intermediate.GetDecay(parts_intermediate.size()-1)));
+        //TLorentzVector sme_vector = smear(event_intermediate.GetDecay(parts_intermediate.size()-1));
+        //parts_sme.push_back(sme_vector);
+        //kin_parts_sme.push_back(KinParticle(sme_vector, masses_intermediate[masses_intermediate.size()-1], RESO));
 
         nevents++;
 
