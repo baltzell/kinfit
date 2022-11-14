@@ -252,7 +252,7 @@ public:
 
         TString fitopt = "Q";
         auto c_pulls = new TCanvas("can2", "Pulls", 900, int(float(1200) * (_parts.size()-_missing) / 3));
-        c_pulls->Divide(3, _parts.size());
+        c_pulls->Divide(3, _parts.size()-_missing);
         for (int ipart = 0; ipart < _parts.size()-_missing; ipart++)
         {
             for (int jkine = 0; jkine < KINES.size(); jkine++)
@@ -264,7 +264,7 @@ public:
         c_pulls->SaveAs(Form("%s.pdf",_name.Data()));
 
         auto c_res = new TCanvas("can3", "Residuals", 900, int(float(1200) * (_parts.size()-_missing) / 3));
-        c_res->Divide(3, 3);
+        c_res->Divide(3, _parts.size()-_missing);
         for (int ipart = 0; ipart < _parts.size()-_missing; ipart++)
         {
             for (int jkine = 0; jkine < KINES.size(); jkine++)
@@ -276,7 +276,7 @@ public:
         c_pulls->SaveAs(Form("%s.pdf",_name.Data()));
 
         auto c_sme = new TCanvas("can4", "Smearing", 900, int(float(1200) * (_parts.size()-_missing) / 3));
-        c_sme->Divide(3, 3);
+        c_sme->Divide(3, _parts.size()-_missing);
         for (int ipart = 0; ipart < _parts.size()-_missing; ipart++)
         {
             for (int jkine = 0; jkine < KINES.size(); jkine++)
