@@ -12,6 +12,8 @@ public:
 
     virtual ~KinConstraint() {}
 
+    double GetNconstraints() { return _nconstraints; }
+
     // Calculate f(x)
     virtual TVectorD getConstraint(std::vector<TLorentzVector> init_particles, std::vector<TLorentzVector> fin_particles) = 0;
 
@@ -41,7 +43,7 @@ protected:
     // the index of particles used in constraints
     std::vector<int> _index_cons_particles;
 
-    // the number of constraints
+    // the number of constraints for a given constraint 
     int _nconstraints;
 };
 

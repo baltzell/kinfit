@@ -59,7 +59,7 @@ int test_4C(const int max_events=10000, const float bg_fraction=0.1)
         kin->Add_EnergyMomentum_Constraint(constraint_idx);
         kin->DoFitting(100);
 
-        test.fill(kin, parts_gen, parts_sme, weight, is_background);
+        test.fill_MissingMass(kin, parts_gen, parts_sme, weight, is_background);
     }
 
     test.plot();

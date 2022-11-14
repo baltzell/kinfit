@@ -4,8 +4,9 @@
 #include "KinFitter.h"
 #include "KinParticle.h"
 #include "KinFitTest.h"
+#include <iostream>
 
-int test_MissAndInv(const int max_events=10000, const float bg_fraction=0.1)
+int test_MissAndInv(const int max_events = 10000, const float bg_fraction = 0.1)
 {
     const double invmass = 3.0;
     const double missmass = 0.938;
@@ -14,7 +15,7 @@ int test_MissAndInv(const int max_events=10000, const float bg_fraction=0.1)
     const std::vector<TString> parts_final = {"e^{+}", "e^{-}", "p"};
     const std::vector<TString> parts_decay = {"e^{+}", "e^{-}"};
 
-    const std::vector<double> masses_intermediate = {invmass, missmass};
+    
     const std::vector<double> masses_final = {0.01, 0.01, missmass};
     const std::vector<double> masses_decay = {0.01, 0.01};
 
@@ -22,10 +23,9 @@ int test_MissAndInv(const int max_events=10000, const float bg_fraction=0.1)
     TLorentzVector beam(0.0, 0.0, 10.6, 10.6);
     TLorentzVector W = beam + target;
 
-    TGenPhaseSpace event_intermediate;
-    event_intermediate.SetDecay(W, masses_intermediate.size(), &masses_intermediate[0]);
-   
-    KinFitTest test("2C", parts_final, W, 1);
+    
+
+    KinFitTest test("2C", parts_final, W, 1, missmass, invmass);
 
     std::vector<double> resolutions;
     std::vector<int> constraint_idx;
@@ -41,6 +41,19 @@ int test_MissAndInv(const int max_events=10000, const float bg_fraction=0.1)
     int nevents = 0;
     while (nevents < max_events)
     {
+
+        bool is_background = RNDM3.Uniform(0,1) < bg_fraction;
+        float decay_mass = invmass;
+
+        if (is_background)
+        {
+            decay_mass = RNDM3.Uniform(invmass - 0.5, invmass + 0.5);
+        }
+
+        const std::vector<double> masses_intermediate = {decay_mass, missmass};
+        TGenPhaseSpace event_intermediate;
+        event_intermediate.SetDecay(W, masses_intermediate.size(), &masses_intermediate[0]);
+
         // generate the intermediate reaction:
         auto weight = event_intermediate.Generate();
 
@@ -62,18 +75,16 @@ int test_MissAndInv(const int max_events=10000, const float bg_fraction=0.1)
             kin_parts_sme.push_back(KinParticle(sme_vector, masses_decay[ipart], RESO));
         }
 
-        //parts_gen.push_back(*(event_intermediate.GetDecay(parts_intermediate.size()-1)));
-        //TLorentzVector sme_vector = smear(event_intermediate.GetDecay(parts_intermediate.size()-1));
-        //parts_sme.push_back(sme_vector);
-        //kin_parts_sme.push_back(KinParticle(sme_vector, masses_intermediate[masses_intermediate.size()-1], RESO));
-
         nevents++;
 
         auto kin = new KinFitter({KinParticle(target), KinParticle(beam)}, kin_parts_sme);
-        kin->Add_MissAndInvMass_Constraint(constraint_idx, invmass, missmass);
+        kin->Add_InvMass_Constraint(constraint_idx, invmass);
+        kin->Add_MissingMass_Constraint(constraint_idx, missmass);
         kin->DoFitting(100);
 
-        test.fill(kin, parts_gen, parts_sme, weight, false);
+        test.fill_MissingMass(kin, parts_gen, parts_sme, weight, is_background);
+        test.fill_MissingMass(kin, parts_gen, parts_sme, weight, is_background);
+        test.fill_InvariantMass(kin, parts_gen, parts_sme, {0, 1}, weight);
     }
 
     test.plot();
@@ -81,7 +92,7 @@ int test_MissAndInv(const int max_events=10000, const float bg_fraction=0.1)
     return 0;
 }
 
-int main() {
+int main()
+{
     return test_MissAndInv();
 }
-

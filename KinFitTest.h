@@ -8,6 +8,8 @@
 #include "TStyle.h"
 #include "TRandom3.h"
 #include "KinFitter.h"
+#include <iostream>
+
 
 // absolute resolutions (GeV,radians,radians):
 const std::vector<double> RESO = {0.15, 0.02, 0.02};
@@ -46,6 +48,10 @@ public:
     TH1* _h_mm_sme;
     TH1* _h_mm_fit;
 
+    TH1* _h_inv_gen;
+    TH1* _h_inv_sme;
+    TH1* _h_inv_fit;
+
     TH1* _h_E_gen;
     TH1* _h_E_sme;
     TH1* _h_E_fit;
@@ -67,7 +73,7 @@ public:
     std::vector<TH1*> _h_smeres;
     std::vector<TH1*> _h_fitgen;
 
-    KinFitTest(TString name, std::vector<TString> parts, TLorentzVector W, int missing=0, float missmass=0)
+    KinFitTest(TString name, std::vector<TString> parts, TLorentzVector W, int missing=0, float missmass=0, float invmass=0)
         :
         _name(name),
         _parts(parts),
@@ -81,6 +87,10 @@ public:
         _h_mm_gen = new TH1F("h_mm_gen", ";Missing Mass [GeV^{2}]", 201, missmass - 0.5 * (parts.size() - 1), missmass + 0.5 * (parts.size() - 1));
         _h_mm_sme = (TH1 *)_h_mm_gen->Clone("h_mm_sme");
         _h_mm_fit = (TH1 *)_h_mm_gen->Clone("h_mm_fit");
+
+        _h_inv_gen = new TH1F("h_inv_gen", ";Invariant Mass [GeV]", 201, invmass - 0.5 * (parts.size() - 1), invmass + 0.5 * (parts.size() - 1));
+        _h_inv_sme = (TH1 *)_h_inv_gen->Clone("h_inv_sme");
+        _h_inv_fit = (TH1 *)_h_inv_gen->Clone("h_inv_sme");
 
         _h_E_gen = new TH1F("h_E_gen", ";#Delta E [GeV]", 201, -0.5 * (parts.size() - 1), 0.5 * (parts.size() - 1));
         _h_E_sme = (TH1 *)_h_E_gen->Clone("h_E_sme");
@@ -114,7 +124,7 @@ public:
         }
     }
 
-    void fill(KinFitter *kin, std::vector<TLorentzVector> parts_gen, std::vector<TLorentzVector> parts_sme, double weight, bool background)
+    void fill_MissingMass(KinFitter *kin, std::vector<TLorentzVector> parts_gen, std::vector<TLorentzVector> parts_sme, double weight, bool background)
     {
         std::vector<TLorentzVector> parts_fit = kin->GetFitted4Vectors();
         
@@ -167,11 +177,38 @@ public:
 
         _h_chi->Fill(kin->GetChi2() / kin->GetNDF());
         
+        //std::cout<<kin->GetConfidenceLevel()<<"\n";
+
+
         if (background)
             _h_lik_Signal->Fill(kin->GetConfidenceLevel());
         else
             _h_lik_BG->Fill(kin->GetConfidenceLevel());
         
+
+    }
+
+    void fill_InvariantMass(KinFitter *kin, std::vector<TLorentzVector> parts_gen, std::vector<TLorentzVector> parts_sme, std::vector<int> indices_part, double weight)
+    {
+        std::vector<TLorentzVector> parts_fit = kin->GetFitted4Vectors();
+
+        TLorentzVector invariant_gen;
+        invariant_gen.SetXYZT(0,0,0,0);
+        TLorentzVector invariant_sme;
+        invariant_sme.SetXYZT(0,0,0,0);
+        TLorentzVector invariant_fit;
+        invariant_fit.SetXYZT(0,0,0,0);
+        
+        for (int ipart = 0; ipart < indices_part.size(); ipart++)
+        {
+            invariant_gen += parts_gen[ipart];
+            invariant_sme += parts_sme[ipart];
+            invariant_fit += parts_fit[ipart];
+        }
+        
+        _h_inv_gen->Fill(invariant_gen.M(), weight);
+        _h_inv_sme->Fill(invariant_sme.M(), weight);
+        _h_inv_fit->Fill(invariant_fit.M(), weight);
 
     }
 
@@ -181,7 +218,7 @@ public:
         gStyle->SetOptStat(0);
         gStyle->SetOptFit(1111);
 
-        auto c_missing = new TCanvas("can1", "Summary", 800, 1200);
+        auto c_missing = new TCanvas("can1", "Summary", 800, 1800);
         c_missing->Divide(1, 3);
         c_missing->cd(1);
         gPad->SetLogy();
@@ -205,11 +242,26 @@ public:
         _h_chi->Draw();
         c_missing->cd(2);
         gPad->SetLogy();
+        _h_lik_Signal->GetYaxis()->SetRangeUser(1., _h_lik_Signal->GetMaximum());
         _h_lik_Signal->SetLineColor(kRed);
         _h_lik_Signal->Draw();
         _h_lik_BG->SetLineColor(kBlue);
         _h_lik_BG->Draw("same");
         c_missing->Print(Form("%s.pdf(",_name.Data()));
+
+        auto c_invariant = new TCanvas("can_inv", "Summary", 800, 800);
+        gPad->SetLogy();
+        _h_inv_gen->GetYaxis()->SetRangeUser(1., _h_inv_gen->GetMaximum());
+        _h_inv_gen->SetFillStyle(1001);
+        _h_inv_gen->SetFillColor(kBlue);
+        _h_inv_gen->Draw("hist");
+        _h_inv_fit->SetLineColor(kGreen);
+        _h_inv_fit->SetLineWidth(2);
+        _h_inv_fit->Draw("hist same");
+        _h_inv_sme->SetLineColor(kRed);
+        _h_inv_sme->Draw("hist same");
+        legend->Draw("same ");
+        c_invariant->Print(Form("%s.pdf(",_name.Data()));
 
         if (_missing==0) {
             auto c_constraint = new TCanvas("c_constraint", "Constraints", 800, 1200);

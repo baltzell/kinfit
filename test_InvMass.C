@@ -16,7 +16,7 @@ int test_InvMass(const int max_events=10000, const float bg_fraction=0.1)
     TGenPhaseSpace event;
     event.SetDecay(JPsi, masses.size(), &masses[0]);
 
-    KinFitTest test("IM", parts, JPsi, 0);
+    KinFitTest test("IM", parts, JPsi, 0, 0, invmass);
 
     std::vector<double> resolutions;
     std::vector<int> constraint_idx;
@@ -64,7 +64,8 @@ int test_InvMass(const int max_events=10000, const float bg_fraction=0.1)
         kin->Add_InvMass_Constraint(constraint_idx, invmass);
         kin->DoFitting(100);
 
-        test.fill(kin, parts_gen, parts_sme, weight, is_background);
+        test.fill_MissingMass(kin, parts_gen, parts_sme, weight, is_background);
+        test.fill_InvariantMass(kin, parts_gen, parts_sme, {0,1}, weight);
     }
 
     test.plot();

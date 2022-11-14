@@ -62,7 +62,7 @@ int test_MissingParticle(const int max_events=10000, const float bg_fraction=0.1
         kin->Add_MissingMass_Constraint(constraint_idx, missmass);
         kin->DoFitting(100);
 
-        test.fill(kin, parts_gen, parts_sme, weight, is_background);
+        test.fill_MissingMass(kin, parts_gen, parts_sme, weight, is_background);
     }
 
     test.plot();
