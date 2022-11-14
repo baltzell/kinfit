@@ -11,7 +11,6 @@
 #include "KinConstraint_EnergyMomentum.h"
 #include "KinConstraint_InvMass.h"
 #include "KinConstraint_MissingMass.h"
-#include "KinConstraint_MissAndInvMass.h"
 
 // Kinfitter class
 // This class implemtent the kinematic fitter describe in https://www.jlab.org/Hall-B/notes/clas_notes03/03-017.pdf
