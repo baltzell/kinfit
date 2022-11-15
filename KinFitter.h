@@ -136,14 +136,6 @@ public:
         _ndf_tot += in_Cons->GetNconstraints();
     }
 
-    void Add_MissAndInvMass_Constraint(std::vector<int> index_P_Cons, double in_mass, double in_miss_mass) //Probably do not need
-     {
-         KinConstraint_MissAndInvMass *in_Cons = new KinConstraint_MissAndInvMass(index_P_Cons, in_mass, in_miss_mass);
-         _Cons.push_back(in_Cons);
-         _nconstraints_tot += in_Cons->GetNconstraints();
-         _ndf_tot += in_Cons->GetNconstraints();
-     }
-
     void DoFitting(const int max_iter = 100)
     {
         // initialize the current chi2 with the largest possible value:
