@@ -16,6 +16,9 @@ test:
 clean:
 	@rm -rf bin
 	@rm -rf data
+	@rm -f *.so
+	@rm -f *.d
+	@rm -f *.pcm
 	@rm -f *.pdf
 
 download:
