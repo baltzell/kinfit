@@ -1,3 +1,5 @@
 *.pdf
 *.swp
 *.exe
+bin
+data
