@@ -8,11 +8,11 @@
 int test_InvMass(const int max_events=10000, const float bg_fraction=0.1)
 {
     const double invmass = 3.0;
-    const std::vector<double> masses = {0.150, 0.150};
-    const std::vector<TString> parts = {"e", "e"};
+    const std::vector<double> masses = {0.150, 0.150, 0.150};
+    const std::vector<TString> parts = {"e", "e", "e"};
 
     TLorentzVector JPsi;
-    JPsi.SetXYZM(0.0, 0.0, 5., invmass);
+    JPsi.SetXYZM(1.0, 1.0, 5., invmass);
     TGenPhaseSpace event;
     event.SetDecay(JPsi, masses.size(), &masses[0]);
 
@@ -38,7 +38,7 @@ int test_InvMass(const int max_events=10000, const float bg_fraction=0.1)
         {
             float mass = RNDM3.Uniform(invmass-0.5, invmass+0.5);
             TLorentzVector BG;
-            BG.SetXYZM(0.0, 0.0, 5., mass);
+            BG.SetXYZM(1.0, 1.0, 5., mass);
             event.SetDecay(BG, masses.size(), &masses[0]);
         }
         else
@@ -65,7 +65,7 @@ int test_InvMass(const int max_events=10000, const float bg_fraction=0.1)
         kin->DoFitting(100);
 
         test.fill_MissingMass(kin, parts_gen, parts_sme, weight, is_background);
-        test.fill_InvariantMass(kin, parts_gen, parts_sme, {0,1}, weight);
+        test.fill_InvariantMass(kin, parts_gen, parts_sme, constraint_idx, weight);
     }
 
     test.plot();

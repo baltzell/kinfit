@@ -9,6 +9,7 @@ class KinConstraint_InvMass : public KinConstraint
 {
 public:
 
+    TLorentzVector _p_inv;
     double _inv_mass;
 
     KinConstraint_InvMass(std::vector<int> index_in_parts, double in_inv_mass)
@@ -20,49 +21,51 @@ public:
 
     TVectorD getConstraint(std::vector<TLorentzVector> init_particles, std::vector<TLorentzVector> fin_particles) override
     {
-        // the first two particles are the invariant mass constraint:
-        TLorentzVector p_1 = fin_particles[_index_cons_particles[0]];
-        TLorentzVector p_2 = fin_particles[_index_cons_particles[1]];
+        _p_inv.SetXYZT(0,0,0,0);
 
+        for (auto i : _index_cons_particles) _p_inv += fin_particles[i];
+            
         TVectorD c;
         c.ResizeTo(_nconstraints);
-        c[0] = ((p_1 + p_2).M2() - (_inv_mass * _inv_mass));
+        c[0] = (_p_inv.M2() - (_inv_mass * _inv_mass));
 
         return c;
     }
 
     TMatrixD getDfDx(int idx_part, std::vector<TLorentzVector> init_particles, std::vector<TLorentzVector> fin_particles) override
     {
-        const int other_part = idx_part==0 ? 1 : 0;;
+    
+        TLorentzVector current_part = fin_particles[idx_part];
 
-        TLorentzVector part_1 = fin_particles[idx_part];
-        TLorentzVector part_2 = fin_particles[other_part];
+        double theta_c = current_part.Theta();
+        double phi_c = current_part.Phi();
+        double p_c = current_part.P();
+        double E_c = current_part.E();
 
-        double theta_1 = part_1.Theta();
-        double phi_1 = part_1.Phi();
-        double p_1 = part_1.P();
-        double E_1 = part_1.E();
-
-        double px_1 = part_1.Px();
-        double py_1 = part_1.Py();
-        double pz_1 = part_1.Pz();
-
-        double theta_2 = part_2.Theta();
-        double phi_2 = part_2.Phi();
-        double p_2 = part_2.P();
-        double E_2 = part_2.E();
-
-        double px_2 = part_2.Px();
-        double py_2 = part_2.Py();
-        double pz_2 = part_2.Pz();
+        double px_c = current_part.Px();
+        double py_c = current_part.Py();
+        double pz_c = current_part.Pz();
+    
+        double px_inv = _p_inv.Px();
+        double py_inv = _p_inv.Py();
+        double pz_inv = _p_inv.Pz();
+        double E_inv = _p_inv.E();
 
         double data[1][_nvars] = {
+            {
+                2*(p_c*(E_inv)/E_c) - 2*( (px_c/p_c)*(px_inv) + (py_c/p_c)*(py_inv) + (pz_c/p_c)*(pz_inv)),
+               -2*( p_c*cos(phi_c)*cos(theta_c)*(px_inv) + p_c*sin(phi_c)*cos(theta_c)*(py_inv) - p_c*sin(theta_c)*(pz_inv)),
+               -2*(-p_c*sin(theta_c)*sin(phi_c)*(px_inv) + p_c*sin(theta_c)*cos(phi_c)*(py_inv))
+            }
+        };
+
+        /*double data[1][_nvars] = {
             {
              2*( p_1*(E_1+E_2)/E_1) - 2*( (px_1/p_1)*(px_1+px_2) + (py_1/p_1)*(py_1+py_2) + (pz_1/p_1)*(pz_1+pz_2)),
             -2*( p_1*cos(phi_1)*cos(theta_1)*(px_1+px_2) + p_1*sin(phi_1)*cos(theta_1)*(py_1+py_2) - p_1*sin(theta_1)*(pz_1+pz_2)),
             -2*(-p_1*sin(theta_1)*sin(phi_1)*(px_1+px_2) + p_1*sin(theta_1)*cos(phi_1)*(py_1+py_2))
             }
-        };
+        };*/
 
         TMatrixD dfdx(_nconstraints, _nvars, *data);
 

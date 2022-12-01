@@ -5,8 +5,14 @@
 
 class KinConstraint
 {
+protected:
+    // the index of particles used in constraints
+    std::vector<int> _index_cons_particles;
+
+    // the number of constraints for a given constraint 
+    int _nconstraints;
+
 public:
-    
     // the number of kinematic variables per particle
     static const int _nvars = 3;
 
@@ -38,13 +44,6 @@ public:
 
         return d_mat;
     }
-
-protected:
-    // the index of particles used in constraints
-    std::vector<int> _index_cons_particles;
-
-    // the number of constraints for a given constraint 
-    int _nconstraints;
 };
 
 #endif
