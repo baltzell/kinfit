@@ -11,6 +11,7 @@
 
 
 void read_Hipo(char input_hipo[256], std::vector<int> required_pids, std::vector<double> masses, TLorentzVector target, TLorentzVector beam, KinFitTest test, std::vector<TString> parts);
+void read_Part_Bank(hipo::bank Bank, std::vector<int> required_pids, std::vector<int>* pid_list, std::vector<float>* px_list, std::vector<float>* py_list, std::vector<float>* pz_list, std::vector<int>* in_part_index);
 
 int test_4C_hipo()
 {
@@ -70,7 +71,6 @@ std::ofstream InfoFile("event_info.txt");
 void read_Hipo(char inputFile[256], std::vector<int> required_pids, std::vector<double> masses, TLorentzVector target, TLorentzVector beam, KinFitTest test, std::vector<TString> parts)
 {
   TLorentzVector W = beam + target;
-
   std::vector<double> resolutions;
   std::vector<int> constraint_idx;
   for (int i = 0; i < parts.size(); i++)
@@ -106,53 +106,23 @@ void read_Hipo(char inputFile[256], std::vector<int> required_pids, std::vector<
     event.getStructure(MCPART);
     event.getStructure(RUN);
 	  
-    //Get reconstructed particle info  -- I should make a method to read either Particle bank
+    //Get reconstructed particle info
     std::vector<int> pid_list;
     std::vector<int> input_part_index;
     std::vector<float> px_list;
     std::vector<float> py_list;
     std::vector<float> pz_list;
+    read_Part_Bank(PART, required_pids, &pid_list, &px_list, &py_list, &pz_list, &input_part_index);
     std::vector<TLorentzVector> parts_rec;
-    int nrows_rec = PART.getRows();
-    for(int i = 0; i < nrows_rec; i++){
-      int   pid = PART.getInt("pid",i);
-      float  px = PART.getFloat("px",i);
-      float  py = PART.getFloat("py",i);
-      float  pz = PART.getFloat("pz",i);
-      for (int j = 0; j < required_pids.size(); j++){
-	if (pid == required_pids.at(j)){
-	  pid_list.push_back(pid);
-	  input_part_index.push_back(j);
-	  px_list.push_back(px);
-	  py_list.push_back(py);
-	  pz_list.push_back(pz);
-	}
-      }
-    }
-	  
+
     //Get generated particle info
     std::vector<int> mc_pid_list;
     std::vector<int> mc_input_part_index;
     std::vector<float> mc_px_list;
     std::vector<float> mc_py_list;
     std::vector<float> mc_pz_list;
+    read_Part_Bank(MCPART, required_pids, &mc_pid_list, &mc_px_list, &mc_py_list, &mc_pz_list, &mc_input_part_index);
     std::vector<TLorentzVector> parts_mc;
-    int nrows_mc = MCPART.getRows();
-    for(int i = 0; i < nrows_mc; i++){
-      int mc_pid = MCPART.getInt("pid",i);
-      float mc_px = MCPART.getFloat("px",i);
-      float mc_py = MCPART.getFloat("py",i);
-      float mc_pz = MCPART.getFloat("pz",i);
-      for (int j = 0; j < required_pids.size(); j++){
-        if (mc_pid == required_pids.at(j)){
-	  mc_pid_list.push_back(mc_pid);
-	  mc_input_part_index.push_back(j);
-	  mc_px_list.push_back(mc_px);
-	  mc_py_list.push_back(mc_py);
-	  mc_pz_list.push_back(mc_pz);
-	}
-      }
-    }
 	  
     //Check if event (reconstructed) contains exactly one of each of required particles
     bool contains_required_parts = false;
@@ -209,6 +179,26 @@ void read_Hipo(char inputFile[256], std::vector<int> required_pids, std::vector<
     }
   }
 }
+
+void read_Part_Bank(hipo::bank PartBank, std::vector<int> required_pids, std::vector<int>* pid_list, std::vector<float>* px_list, std::vector<float>* py_list, std::vector<float>* pz_list, std::vector<int>* in_part_index){  
+  int nrows_rec = PartBank.getRows();
+  for(int i = 0; i < nrows_rec; i++){
+    int   pid = PartBank.getInt("pid",i);
+    float  px = PartBank.getFloat("px",i);
+    float  py = PartBank.getFloat("py",i);
+    float  pz = PartBank.getFloat("pz",i);
+    for (int j = 0; j < required_pids.size(); j++){
+      if (pid == required_pids.at(j)){
+	pid_list->push_back(pid);
+	in_part_index->push_back(j);
+	px_list->push_back(px);
+	py_list->push_back(py);
+	pz_list->push_back(pz);
+      }
+    }
+  }
+}
+
 
 int main() {
     return test_4C_hipo();
