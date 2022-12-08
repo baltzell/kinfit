@@ -22,11 +22,11 @@ int test_4C_hipo()
   const std::vector<double> masses = {0.938, 0.139, 0.139};                                                                                                                                        
   const std::vector<int> required_pids = {11, -211, 211, 2212};
 
-  KinFitTest test("4C", parts, W);
+  KinFitTest test("4C_hipo", parts, W);
 
   //The variable dir_path can be specified to either be the path to the output directory containing                                                                                                  
   //multiple osg outputs or can be full path to a specific hipo file.
-  std::ofstream InFileList("input_files.txt");
+  //std::ofstream InFileList("input_files.txt");
 
   //---------------Specify input file or directory path---------------//
   char dir_path[256] = "/volatile/clas12/osg2/reedtg/job_5429/output/simu_0/dst.hipo";
@@ -52,7 +52,7 @@ int test_4C_hipo()
 	strcpy(dir_path_char, dir_path_str.c_str());
 	read_Hipo(dir_path_char, required_pids, masses, target, beam, test, parts);
 	//Print list of all read hipo files to input_files.txt
-	InFileList << dir_path << en->d_name << "/dst.hipo" << std::endl;
+	//InFileList << dir_path << en->d_name << "/dst.hipo" << std::endl;
       }
     }
       closedir(dr); //close all directory
@@ -66,7 +66,7 @@ int test_4C_hipo()
   return 0;
 }
     
-std::ofstream InfoFile("event_info.txt");
+//std::ofstream InfoFile("event_info.txt");
     
 void read_Hipo(char inputFile[256], std::vector<int> required_pids, std::vector<double> masses, TLorentzVector target, TLorentzVector beam, KinFitTest test, std::vector<TString> parts)
 {
