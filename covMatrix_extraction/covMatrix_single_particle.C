@@ -81,23 +81,20 @@ const float part_mass = 0.13957;
 const int part_charge = 1;
 const int P_bins = 1;
 const int theta_bins = 1;
-const int phi_bins = 1;
+const int phi_bins = 25;
 
 const std::vector<TString> KINES = {"P", "#theta", "#phi"};
 const std::vector<TString> UNITS = {"[GeV]", "[rad]", "[rad]"};
 const std::vector<int> kin_plots_low = {0, 0, 25};
 const std::vector<int> kin_plots_high = {12, 40, 95};
-//const std::vector<double> kin_delta_plots_low = {-0.08, -0.002, -0.01};
-//const std::vector<double> kin_delta_plots_high = {0.08, 0.002, 0.01};
-const std::vector<double> kin_delta_plots_low = {-0.5, -0.05, -0.05};
-const std::vector<double> kin_delta_plots_high = {0.5, 0.05, 0.05};
+const std::vector<double> kin_delta_plots_low = {-1, -0.05, -0.1};
+const std::vector<double> kin_delta_plots_high = {1, 0.05, 0.1};
 
 int covMatrix_extraction()
 {
   //---------------Specify input file or directory path---------------//                                                                                                                                  
-  //char in_data[256] = "/work/clas12/reedtg/clas12_kinematic_fitter/covMatrix/outputs/pip_pim_test/pip_pim_binary_field/cooked/";                         
-  char in_data[256] = "/volatile/clas12/reedtg/clas12_kinfitter/cov_matrix/pip-sec2/cooked/out_pip-sec2513.rec.hipo";
-  //char in_data[256] = "/volatile/clas12/reedtg/clas12_kinfitter/cov_matrix/pip-sec2/cooked/";                                                                                   
+  //char in_data[256] = "/volatile/clas12/reedtg/clas12_kinfitter/cov_matrix/pip-sec2/cooked/out_pip-sec22.rec.hipo";
+  char in_data[256] = "/volatile/clas12/reedtg/clas12_kinfitter/cov_matrix/pip-sec2-/cooked/"; 
   //char in_data[256] = "/volatile/clas12/reedtg/clas12_kinfitter/cov_matrix/test_dir/";
   //------------------------------------------------------------------//                                                                                                                                   
 
@@ -126,8 +123,9 @@ int covMatrix_extraction()
   dr = opendir(in_data);                                                                                                                                                
   //If in_data is a directory, loop through all files within it  
   int in_file_count = 0;
+  int max_files = 500000000;
   if (dr) {
-    while ((en = readdir(dr)) != NULL) {
+    while (((en = readdir(dr)) != NULL) && (in_file_count < max_files)) {
       if ((strcmp(en->d_name, ".") != 0) && (strcmp(en->d_name, "..") != 0)) {
         in_file_count++;
 	std::string dir_path_str(in_data);
@@ -146,7 +144,7 @@ int covMatrix_extraction()
   }
   //If in_data is not a directory, then get the single input file    
   else {
-    std::cout << "Not a directory. Only input single file: " << in_data << std::endl;
+    std::cout << "Not a directory. Only single input file: " << in_data << std::endl;
     read_Hipo(in_data, part_charge, part_mass, &mc_p_vec, &rec_p_vec, &mc_theta_deg_vec, &rec_theta_deg_vec, &mc_phi_deg_vec, &rec_phi_deg_vec, &p_diff_vec, &theta_diff_rad_vec, &phi_diff_rad_vec, &mc_MM2_vec, &rec_MM2_vec, &mc_tot_E_vec, &rec_tot_E_vec, &mc_tot_pz_vec, &rec_tot_pz_vec, &chi2_vec, &ndf_vec);
   }
 
@@ -282,8 +280,6 @@ int covMatrix_extraction()
   std::vector<std::vector<std::vector<double>>> theta_bin_centers_all(P_bins, std::vector<std::vector<double>> (theta_bins, std::vector<double> (phi_bins)));
   std::vector<std::vector<std::vector<double>>> phi_bin_centers_all(P_bins, std::vector<std::vector<double>> (theta_bins, std::vector<double> (phi_bins)));
 
-  //std::vector<int> theta_bin_vec;
-
   //Loop through the bins, create the histos for each one, and add them to the vectors of histos declared above
   int pushback_count = 0;
   for (int pBin = 0; pBin < P_bins; pBin++) {
@@ -300,55 +296,46 @@ int covMatrix_extraction()
 	double P_bin_center = (P_bin_high + P_bin_low) / 2;
 	double theta_bin_center = (theta_bin_high + theta_bin_low) / 2;
 	double phi_bin_center = (phi_bin_high + phi_bin_low) / 2;
-	P_bin_centers_all[pBin][thetaBin].push_back(P_bin_center);
-	theta_bin_centers_all[pBin][thetaBin].push_back(theta_bin_center);
-	phi_bin_centers_all[pBin][thetaBin].push_back(phi_bin_center);
+	P_bin_centers_all[pBin][thetaBin][phiBin] = P_bin_center;
+	theta_bin_centers_all[pBin][thetaBin][phiBin] = theta_bin_center;
+	phi_bin_centers_all[pBin][thetaBin][phiBin] = phi_bin_center;
 
 	//Initialize Canvases and add to the 3-dimensional vector of canvases, rec_kin_can_all_bins
-	TCanvas* kin_canvas = new TCanvas(Form("kin_P%i_th%i_ph%i_canvas", pBin, thetaBin, phiBin), Form("kin_P%i_th%i_ph%i_canvas", pBin, thetaBin, phiBin), 800, 800);
-	kin_canvas->Divide(2,3);
-	kin_can_all_bins[pBin][thetaBin].push_back(kin_canvas);
-	TCanvas* delta_kin_canvas = new TCanvas(Form("delta_kin_P%i_th%i_ph%i_canvas", pBin, thetaBin, phiBin), Form("delta_kin_P%i_th%i_ph%i_canvas", pBin, thetaBin, phiBin), 800, 800);
-        delta_kin_canvas->Divide(2,3);
-        delta_kin_can_all_bins[pBin][thetaBin].push_back(delta_kin_canvas);
+	kin_can_all_bins[pBin][thetaBin][phiBin] = new TCanvas(Form("kin_P%i_th%i_ph%i_canvas", pBin, thetaBin, phiBin), Form("kin_P%i_th%i_ph%i_canvas", pBin, thetaBin, phiBin), 800, 800);
+	kin_can_all_bins[pBin][thetaBin][phiBin]->Divide(2,3);
+	delta_kin_can_all_bins[pBin][thetaBin][phiBin] = new TCanvas(Form("delta_kin_P%i_th%i_ph%i_canvas", pBin, thetaBin, phiBin), Form("delta_kin_P%i_th%i_ph%i_canvas", pBin, thetaBin, phiBin), 800, 800);
+	delta_kin_can_all_bins[pBin][thetaBin][phiBin]->Divide(2,3);
       
 	//~~~~~~~~~~~~~~~~~~Set Up Plots~~~~~~~~~~~~~~~~~~~~~~~//
-	std::vector<TH1*> mc_kin_plots;
-	std::vector<TH1*> rec_kin_plots;
-	std::vector<TH1*> kin_delta_plots;
-	std::vector<TH2*> kin_delta_2D_plots;
+	std::vector<TH1*> mc_kin_plots(KINES.size());
+	std::vector<TH1*> rec_kin_plots(KINES.size());
+	std::vector<TH1*> kin_delta_plots(KINES.size());
+	std::vector<TH2*> kin_delta_2D_plots(KINES.size());
 	//TH1* mc_MM2_plot;
 	//TH1* rec_MM2_plot;
 	for (int j = 0; j < KINES.size(); j++) {
-	  TH1* mc_kin_temp = new TH1F(Form("mc_%s_P%i_th%i_ph%i_plot", KINES[j].Data(), pBin, thetaBin, phiBin), Form("MC: %s;%s %s;Counts", part_type.Data(), KINES[j].Data(), UNITS[j].Data()), 200, kin_plots_low[j], kin_plots_high[j]);
-	  mc_kin_temp->GetXaxis()->SetTitleSize(0.07);
-	  mc_kin_temp->GetYaxis()->SetTitleSize(0.05);
-	  mc_kin_plots.push_back(mc_kin_temp);
-	  TH1* rec_kin_temp = new TH1F(Form("rec_%s_P%i_th%i_ph%i_plot", KINES[j].Data(), pBin, thetaBin, phiBin), Form("Rec: %s;%s %s;Counts", part_type.Data(), KINES[j].Data(), UNITS[j].Data()), 200, kin_plots_low[j], kin_plots_high[j]);
-	  rec_kin_temp->GetXaxis()->SetTitleSize(0.07);
-	  rec_kin_temp->GetYaxis()->SetTitleSize(0.05);
-	  rec_kin_plots.push_back(rec_kin_temp);
-	  TH1* kin_delta_temp = new TH1F(Form("delta_%s_P%i_th%i_ph%i_plot", KINES[j].Data(), pBin, thetaBin, phiBin), Form("%s;#Delta %s (Rec - Gen) %s;Counts", part_type.Data(), KINES[j].Data(), UNITS[j].Data()), 500, kin_delta_plots_low[j], kin_delta_plots_high[j]);
-	  kin_delta_temp->GetXaxis()->SetTitleSize(0.07);
-	  kin_delta_temp->GetYaxis()->SetTitleSize(0.05);
-	  kin_delta_plots.push_back(kin_delta_temp);
+	  mc_kin_plots_all_bins[pBin][thetaBin][phiBin][j] = new TH1F(Form("mc_%s_P%i_th%i_ph%i_plot", KINES[j].Data(), pBin, thetaBin, phiBin), Form("MC: %s;%s %s;Counts", part_type.Data(), KINES[j].Data(), UNITS[j].Data()), 200, kin_plots_low[j], kin_plots_high[j]);
+	  mc_kin_plots_all_bins[pBin][thetaBin][phiBin][j]->GetXaxis()->SetTitleSize(0.07);
+	  mc_kin_plots_all_bins[pBin][thetaBin][phiBin][j]->GetYaxis()->SetTitleSize(0.05);
+
+	  rec_kin_plots_all_bins[pBin][thetaBin][phiBin][j] = new TH1F(Form("rec_%s_P%i_th%i_ph%i_plot", KINES[j].Data(), pBin, thetaBin, phiBin), Form("Rec: %s;%s %s;Counts", part_type.Data(), KINES[j].Data(), UNITS[j].Data()), 200, kin_plots_low[j], kin_plots_high[j]);
+	  rec_kin_plots_all_bins[pBin][thetaBin][phiBin][j]->GetXaxis()->SetTitleSize(0.07);
+	  rec_kin_plots_all_bins[pBin][thetaBin][phiBin][j]->GetYaxis()->SetTitleSize(0.05);
+
+	  delta_kin_plots_all_bins[pBin][thetaBin][phiBin][j] = new TH1F(Form("delta_%s_P%i_th%i_ph%i_plot", KINES[j].Data(), pBin, thetaBin, phiBin), Form("%s;#Delta %s (Rec - Gen) %s;Counts", part_type.Data(), KINES[j].Data(), UNITS[j].Data()), 500, kin_delta_plots_low[j], kin_delta_plots_high[j]);
+	  delta_kin_plots_all_bins[pBin][thetaBin][phiBin][j]->GetXaxis()->SetTitleSize(0.07);
+	  delta_kin_plots_all_bins[pBin][thetaBin][phiBin][j]->GetYaxis()->SetTitleSize(0.05);
 	  if (j == KINES.size() - 1) {
-	    TH2* kin_delta_2D_temp = new TH2F(Form("delta_%s_delta_%s_P%i_th%i_ph%i_plot", KINES[0].Data(), KINES[j].Data(), pBin, thetaBin, phiBin), Form("%s;#Delta %s (Rec - Gen) %s;#Delta %s (Rec - Gen) %s", part_type.Data(), KINES[j].Data(), UNITS[j].Data(), KINES[0].Data(), UNITS[0].Data()), 500, kin_delta_plots_low[j], kin_delta_plots_high[j], 500, kin_delta_plots_low[0], kin_delta_plots_high[0]);
-	    kin_delta_2D_temp->GetXaxis()->SetTitleSize(0.07);
-	    kin_delta_2D_temp->GetYaxis()->SetTitleSize(0.07);
-	    kin_delta_2D_plots.push_back(kin_delta_2D_temp);
+	    delta_kin_2D_plots_all_bins[pBin][thetaBin][phiBin][j] = new TH2F(Form("delta_%s_delta_%s_P%i_th%i_ph%i_plot", KINES[0].Data(), KINES[j].Data(), pBin, thetaBin, phiBin), Form("%s;#Delta %s (Rec - Gen) %s;#Delta %s (Rec - Gen) %s", part_type.Data(), KINES[j].Data(), UNITS[j].Data(), KINES[0].Data(), UNITS[0].Data()), 500, kin_delta_plots_low[j], kin_delta_plots_high[j], 500, kin_delta_plots_low[0], kin_delta_plots_high[0]);
+	    delta_kin_2D_plots_all_bins[pBin][thetaBin][phiBin][j]->GetXaxis()->SetTitleSize(0.07);
+            delta_kin_2D_plots_all_bins[pBin][thetaBin][phiBin][j]->GetYaxis()->SetTitleSize(0.07);
 	  }
 	  else {
-	    TH2* kin_delta_2D_temp = new TH2F(Form("delta_%s_delta_%s_P%i_th%i_ph%i_plot", KINES[j].Data(), KINES[j+1].Data(), pBin, thetaBin, phiBin), Form("%s;#Delta %s (Rec - Gen) %s;#Delta %s (Rec - Gen) %s", part_type.Data(), KINES[j+1].Data(), UNITS[j+1].Data(), KINES[j].Data(), UNITS[j].Data()), 500, kin_delta_plots_low[j+1], kin_delta_plots_high[j+1], 500, kin_delta_plots_low[j], kin_delta_plots_high[j]);
-	    kin_delta_2D_temp->GetXaxis()->SetTitleSize(0.07);
-	    kin_delta_2D_temp->GetYaxis()->SetTitleSize(0.07);
-	    kin_delta_2D_plots.push_back(kin_delta_2D_temp);
+	    delta_kin_2D_plots_all_bins[pBin][thetaBin][phiBin][j] = new TH2F(Form("delta_%s_delta_%s_P%i_th%i_ph%i_plot", KINES[j].Data(), KINES[j+1].Data(), pBin, thetaBin, phiBin), Form("%s;#Delta %s (Rec - Gen) %s;#Delta %s (Rec - Gen) %s", part_type.Data(),KINES[j+1].Data(), UNITS[j+1].Data(), KINES[j].Data(), UNITS[j].Data()), 500, kin_delta_plots_low[j+1], kin_delta_plots_high[j+1], 500, kin_delta_plots_low[j], kin_delta_plots_high[j]);
+	    delta_kin_2D_plots_all_bins[pBin][thetaBin][phiBin][j]->GetXaxis()->SetTitleSize(0.07);
+            delta_kin_2D_plots_all_bins[pBin][thetaBin][phiBin][j]->GetYaxis()->SetTitleSize(0.07);
 	  }
 	}
-	rec_kin_plots_all_bins[pBin][thetaBin].push_back(rec_kin_plots);
-	mc_kin_plots_all_bins[pBin][thetaBin].push_back(mc_kin_plots);
-	delta_kin_plots_all_bins[pBin][thetaBin].push_back(kin_delta_plots);
-	delta_kin_2D_plots_all_bins[pBin][thetaBin].push_back(kin_delta_2D_plots);
 	pushback_count++;
       }
     }
@@ -363,24 +350,21 @@ int covMatrix_extraction()
     Int_t theta_bin_num =  P_theta_and_phi->GetYaxis()->FindBin(rec_theta_deg_vec[i]);
     Int_t phi_bin_num =  P_theta_and_phi->GetZaxis()->FindBin(rec_phi_deg_vec[i]);
     //InfoFile << "P_bin_num = " << P_bin_num << ", theta_bin_num = " << theta_bin_num << ", phi_bin_num = " << phi_bin_num << std::endl;
-    //std::cout << "rec_kin_plots_all_bins size = " << rec_kin_plots_all_bins[0][0].size() << std::endl;
     if (((P_bin_num > 0) && (P_bin_num <= P_bins)) && ((theta_bin_num > 0) && (theta_bin_num <= theta_bins)) && ((phi_bin_num > 0) && (phi_bin_num <= phi_bins))) { 
-      rec_kin_plots_all_bins[P_bin_num-1][theta_bin_num-1][2*phi_bin_num-1][0]->Fill(rec_p_vec[i]);
-      rec_kin_plots_all_bins[P_bin_num-1][theta_bin_num-1][2*phi_bin_num-1][1]->Fill(rec_theta_deg_vec[i]);
-      rec_kin_plots_all_bins[P_bin_num-1][theta_bin_num-1][2*phi_bin_num-1][2]->Fill(rec_phi_deg_vec[i]);
-      mc_kin_plots_all_bins[P_bin_num-1][theta_bin_num-1][2*phi_bin_num-1][0]->Fill(mc_p_vec[i]);
-      mc_kin_plots_all_bins[P_bin_num-1][theta_bin_num-1][2*phi_bin_num-1][1]->Fill(mc_theta_deg_vec[i]);
-      mc_kin_plots_all_bins[P_bin_num-1][theta_bin_num-1][2*phi_bin_num-1][2]->Fill(mc_phi_deg_vec[i]);
-      delta_kin_plots_all_bins[P_bin_num-1][theta_bin_num-1][2*phi_bin_num-1][0]->Fill(p_diff_vec[i]);
-      delta_kin_plots_all_bins[P_bin_num-1][theta_bin_num-1][2*phi_bin_num-1][1]->Fill(theta_diff_rad_vec[i]);
-      delta_kin_plots_all_bins[P_bin_num-1][theta_bin_num-1][2*phi_bin_num-1][2]->Fill(phi_diff_rad_vec[i]);
-      delta_kin_2D_plots_all_bins[P_bin_num-1][theta_bin_num-1][2*phi_bin_num-1][0]->Fill(theta_diff_rad_vec[i], p_diff_vec[i]);
-      delta_kin_2D_plots_all_bins[P_bin_num-1][theta_bin_num-1][2*phi_bin_num-1][1]->Fill(phi_diff_rad_vec[i], theta_diff_rad_vec[i]);
-      delta_kin_2D_plots_all_bins[P_bin_num-1][theta_bin_num-1][2*phi_bin_num-1][2]->Fill(phi_diff_rad_vec[i], p_diff_vec[i]);
+      rec_kin_plots_all_bins[P_bin_num-1][theta_bin_num-1][phi_bin_num-1][0]->Fill(rec_p_vec[i]);
+      rec_kin_plots_all_bins[P_bin_num-1][theta_bin_num-1][phi_bin_num-1][1]->Fill(rec_theta_deg_vec[i]);
+      rec_kin_plots_all_bins[P_bin_num-1][theta_bin_num-1][phi_bin_num-1][2]->Fill(rec_phi_deg_vec[i]);
+      mc_kin_plots_all_bins[P_bin_num-1][theta_bin_num-1][phi_bin_num-1][0]->Fill(mc_p_vec[i]);
+      mc_kin_plots_all_bins[P_bin_num-1][theta_bin_num-1][phi_bin_num-1][1]->Fill(mc_theta_deg_vec[i]);
+      mc_kin_plots_all_bins[P_bin_num-1][theta_bin_num-1][phi_bin_num-1][2]->Fill(mc_phi_deg_vec[i]);
+      delta_kin_plots_all_bins[P_bin_num-1][theta_bin_num-1][phi_bin_num-1][0]->Fill(p_diff_vec[i]);
+      delta_kin_plots_all_bins[P_bin_num-1][theta_bin_num-1][phi_bin_num-1][1]->Fill(theta_diff_rad_vec[i]);
+      delta_kin_plots_all_bins[P_bin_num-1][theta_bin_num-1][phi_bin_num-1][2]->Fill(phi_diff_rad_vec[i]);
+      delta_kin_2D_plots_all_bins[P_bin_num-1][theta_bin_num-1][phi_bin_num-1][0]->Fill(theta_diff_rad_vec[i], p_diff_vec[i]);
+      delta_kin_2D_plots_all_bins[P_bin_num-1][theta_bin_num-1][phi_bin_num-1][1]->Fill(phi_diff_rad_vec[i], theta_diff_rad_vec[i]);
+      delta_kin_2D_plots_all_bins[P_bin_num-1][theta_bin_num-1][phi_bin_num-1][2]->Fill(phi_diff_rad_vec[i], p_diff_vec[i]);
     }
   }
-  
-  //std::cout << "kin_can_all_bins[pBin] size = " << kin_can_all_bins[0][0].size() << std::endl;
 
   //Loop through the bins and draw the filled histos
   for (int pBin = 0; pBin < P_bins; pBin++) {
@@ -389,80 +373,84 @@ int covMatrix_extraction()
 	std::vector<double> delta_kin_plot_low_vec, delta_kin_plot_upp_vec;
 	for (int j = 0; j < KINES.size(); j++) {
 	  //Draw the histograms
-	  kin_can_all_bins[pBin][thetaBin][2*phiBin+1]->cd(2*j+1);
+	  kin_can_all_bins[pBin][thetaBin][phiBin]->cd(2*j+1);
 	  gPad->SetBottomMargin(0.15);    //So the axis titles fit on canvas  
 	  gPad->SetLeftMargin(0.15);       
-	  rec_kin_plots_all_bins[pBin][thetaBin][2*phiBin+1][j]->Draw();
-	  kin_can_all_bins[pBin][thetaBin][2*phiBin+1]->cd(2*j+2);
+	  rec_kin_plots_all_bins[pBin][thetaBin][phiBin][j]->Draw();
+	  kin_can_all_bins[pBin][thetaBin][phiBin]->cd(2*j+2);
 	  gPad->SetBottomMargin(0.15);    //So the axis titles fit on canvas   
 	  gPad->SetLeftMargin(0.15);
-	  mc_kin_plots_all_bins[pBin][thetaBin][2*phiBin+1][j]->Draw();
+	  mc_kin_plots_all_bins[pBin][thetaBin][phiBin][j]->Draw();
 	  gPad->SetBottomMargin(0.15);    //So the axis titles fit on canvas        
 	  gPad->SetLeftMargin(0.15);
 
 	  //Set the ranges for these plots according to the mean and RMS
-	  delta_kin_can_all_bins[pBin][thetaBin][2*phiBin+1]->cd(2*j+1);
-	  delta_kin_plots_all_bins[pBin][thetaBin][2*phiBin+1][j]->Draw();
+	  delta_kin_can_all_bins[pBin][thetaBin][phiBin]->cd(2*j+1);
+	  delta_kin_plots_all_bins[pBin][thetaBin][phiBin][j]->Draw();
 	  gPad->SetBottomMargin(0.15);    //So the axis titles fit on canvas
 	  gPad->SetLeftMargin(0.15);
-	  Double_t delta_kin_mean = delta_kin_plots_all_bins[pBin][thetaBin][2*phiBin+1][j]->GetMean();
-          Double_t delta_kin_rms = delta_kin_plots_all_bins[pBin][thetaBin][2*phiBin+1][j]->GetRMS();
+	  Double_t delta_kin_mean = delta_kin_plots_all_bins[pBin][thetaBin][phiBin][j]->GetMean();
+          Double_t delta_kin_rms = delta_kin_plots_all_bins[pBin][thetaBin][phiBin][j]->GetRMS();
           double delta_kin_plot_low = delta_kin_mean - delta_kin_rms;
           double delta_kin_plot_upp = delta_kin_mean + delta_kin_rms;
           delta_kin_plot_low_vec.push_back(delta_kin_plot_low);
           delta_kin_plot_upp_vec.push_back(delta_kin_plot_upp);
-          delta_kin_plots_all_bins[pBin][thetaBin][2*phiBin+1][j]->GetXaxis()->SetRangeUser(delta_kin_plot_low, delta_kin_plot_upp);
-	  //std::cout << "Mean from plot = " << delta_kin_mean << ", RMS from plot = " << delta_kin_rms << std::endl;
-	  
+
+	  InfoFile << "Mean from plot = " << delta_kin_mean << ", RMS from plot = " << delta_kin_rms << std::endl;
+
+	  /*
 	  //Check if rebinning is necessary using Sturge's Rule
 	  double original_x_range = kin_delta_plots_high[j] - kin_delta_plots_low[j];
 	  double reduced_x_range = delta_kin_plot_upp - delta_kin_plot_low;
-	  Int_t entries = delta_kin_plots_all_bins[pBin][thetaBin][2*phiBin+1][j]->GetEntries();
-	  int N_bins_orig = delta_kin_plots_all_bins[pBin][thetaBin][2*phiBin+1][j]->GetNbinsX();
+	  Int_t entries = delta_kin_plots_all_bins[pBin][thetaBin][phiBin][j]->GetEntries();
+	  int N_bins_orig = delta_kin_plots_all_bins[pBin][thetaBin][phiBin][j]->GetNbinsX();
 	  double N_bins_reduced = reduced_x_range / original_x_range * N_bins_orig;
 	  int N_bins_reduced_int = int(N_bins_reduced);
 	  int N_bins_Sturges_rule = Sturges_rule(entries);
 	  int N_bins_ratio = N_bins_reduced_int / N_bins_Sturges_rule;
-	  if (N_bins_ratio >= 2) {
-	    delta_kin_plots_all_bins[pBin][thetaBin][2*phiBin+1][j]->Rebin(N_bins_ratio);
-	    InfoFile << "Reducing binning by factor of " << N_bins_ratio << std::endl;
-	  }
+	  //if (N_bins_ratio >= 2) {
+	  //  delta_kin_plots_all_bins[pBin][thetaBin][2*phiBin+1][j]->Rebin(N_bins_ratio);
+	  //  InfoFile << "Reducing binning by factor of " << N_bins_ratio << std::endl;
+	  // }
+	  */
 	}
+	/*
 	//Loop again through the kinematic variables to apply x and y axis ranges (as determined above) to the 2D histograms
 	for (int j = 0; j < KINES.size(); j++) {
-	  delta_kin_can_all_bins[pBin][thetaBin][2*phiBin+1]->cd(2*j+2);
+	  delta_kin_can_all_bins[pBin][thetaBin][phiBin]->cd(2*j+2);
           gStyle->SetTitleFontSize(0.07);
           gPad->SetBottomMargin(0.2);  //So the axis titles fit on canvas      
 	  gPad->SetLeftMargin(0.17);
-          delta_kin_2D_plots_all_bins[pBin][thetaBin][2*phiBin+1][j]->Draw("Colz");
+          delta_kin_2D_plots_all_bins[pBin][thetaBin][phiBin][j]->Draw("Colz");
 	  //Change 2D histogram axis ranges according to means and RMS from 1D histograms       
-	    if (j == KINES.size() - 1) {
-	      delta_kin_2D_plots_all_bins[pBin][thetaBin][2*phiBin+1][j]->GetXaxis()->SetRangeUser(delta_kin_plot_low_vec[j], delta_kin_plot_upp_vec[j]);
-	      delta_kin_2D_plots_all_bins[pBin][thetaBin][2*phiBin+1][j]->GetYaxis()->SetRangeUser(delta_kin_plot_low_vec[0], delta_kin_plot_upp_vec[0]);
-	      //std::cout << "x low = " << delta_kin_plot_low_vec[j] << ", x high = " << delta_kin_plot_upp_vec[j] << std::endl;
-	      //std::cout<< "y low = " << delta_kin_plot_low_vec[0] << ", y high = " << delta_kin_plot_upp_vec[0] << std::endl;
-	    }
-	    else {
-	      delta_kin_2D_plots_all_bins[pBin][thetaBin][2*phiBin+1][j]->GetXaxis()->SetRangeUser(delta_kin_plot_low_vec[j+1], delta_kin_plot_upp_vec[j+1]);
-	      delta_kin_2D_plots_all_bins[pBin][thetaBin][2*phiBin+1][j]->GetYaxis()->SetRangeUser(delta_kin_plot_low_vec[j], delta_kin_plot_upp_vec[j]);
-	    }
+	  if (j == KINES.size() - 1) {
+	    delta_kin_2D_plots_all_bins[pBin][thetaBin][2*phiBin+1][j]->GetXaxis()->SetRangeUser(delta_kin_plot_low_vec[j], delta_kin_plot_upp_vec[j]);
+	    delta_kin_2D_plots_all_bins[pBin][thetaBin][2*phiBin+1][j]->GetYaxis()->SetRangeUser(delta_kin_plot_low_vec[0], delta_kin_plot_upp_vec[0]);
+	    //std::cout << "x low = " << delta_kin_plot_low_vec[j] << ", x high = " << delta_kin_plot_upp_vec[j] << std::endl;
+	    //std::cout<< "y low = " << delta_kin_plot_low_vec[0] << ", y high = " << delta_kin_plot_upp_vec[0] << std::endl;
+	  }
+	  else {
+	    delta_kin_2D_plots_all_bins[pBin][thetaBin][2*phiBin+1][j]->GetXaxis()->SetRangeUser(delta_kin_plot_low_vec[j+1], delta_kin_plot_upp_vec[j+1]);
+	    delta_kin_2D_plots_all_bins[pBin][thetaBin][2*phiBin+1][j]->GetYaxis()->SetRangeUser(delta_kin_plot_low_vec[j], delta_kin_plot_upp_vec[j]);
+	  }
 	}
-	delta_kin_can_all_bins[pBin][thetaBin][2*phiBin+1]->SaveAs(Form("plots/kinematics_P%i_theta%i_phi%i.pdf(", pBin, thetaBin, phiBin));
-	kin_can_all_bins[pBin][thetaBin][2*phiBin+1]->SaveAs(Form("plots/kinematics_P%i_theta%i_phi%i.pdf)", pBin, thetaBin, phiBin));
+	*/
+	delta_kin_can_all_bins[pBin][thetaBin][phiBin]->SaveAs(Form("plots/kinematics_P%i_theta%i_phi%i.pdf(", pBin, thetaBin, phiBin));
+	kin_can_all_bins[pBin][thetaBin][phiBin]->SaveAs(Form("plots/kinematics_P%i_theta%i_phi%i.pdf)", pBin, thetaBin, phiBin));
 
 	//Get variances and covariances of the three kinematic variables: P, theta, and phi   
-	Double_t p_var = delta_kin_2D_plots_all_bins[pBin][thetaBin][2*phiBin+1][2]->GetCovariance(2, 2);
-        Double_t phi_var = delta_kin_2D_plots_all_bins[pBin][thetaBin][2*phiBin+1][2]->GetCovariance(1, 1);
-        Double_t theta_var = delta_kin_2D_plots_all_bins[pBin][thetaBin][2*phiBin+1][1]->GetCovariance(2, 2);
-        Double_t p_phi_cov = delta_kin_2D_plots_all_bins[pBin][thetaBin][2*phiBin+1][2]->GetCovariance(1, 2);
-        Double_t p_theta_cov = delta_kin_2D_plots_all_bins[pBin][thetaBin][2*phiBin+1][0]->GetCovariance(1, 2);
-        Double_t theta_phi_cov = delta_kin_2D_plots_all_bins[pBin][thetaBin][2*phiBin+1][1]->GetCovariance(1, 2);
+	Double_t p_var = delta_kin_2D_plots_all_bins[pBin][thetaBin][phiBin][2]->GetCovariance(2, 2);
+        Double_t phi_var = delta_kin_2D_plots_all_bins[pBin][thetaBin][phiBin][2]->GetCovariance(1, 1);
+        Double_t theta_var = delta_kin_2D_plots_all_bins[pBin][thetaBin][phiBin][1]->GetCovariance(2, 2);
+        Double_t p_phi_cov = delta_kin_2D_plots_all_bins[pBin][thetaBin][phiBin][2]->GetCovariance(1, 2);
+        Double_t p_theta_cov = delta_kin_2D_plots_all_bins[pBin][thetaBin][phiBin][0]->GetCovariance(1, 2);
+        Double_t theta_phi_cov = delta_kin_2D_plots_all_bins[pBin][thetaBin][phiBin][1]->GetCovariance(1, 2);
 
 	//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~Save covariance matrix elements~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~//
 	//Get bin centers
-	double current_P_bin_center = P_bin_centers_all[pBin][thetaBin][2*phiBin+1];
-	double current_theta_bin_center = theta_bin_centers_all[pBin][thetaBin][2*phiBin+1];
-	double current_phi_bin_center = phi_bin_centers_all[pBin][thetaBin][2*phiBin+1];
+	double current_P_bin_center = P_bin_centers_all[pBin][thetaBin][phiBin];
+	double current_theta_bin_center = theta_bin_centers_all[pBin][thetaBin][phiBin];
+	double current_phi_bin_center = phi_bin_centers_all[pBin][thetaBin][phiBin];
 
 	//Overwrites pre-existing files when on the first bin. For all subsequent bins, the file is appended
 	if ((pBin == 0) && (thetaBin == 0) && (phiBin == 0)) {
@@ -577,7 +565,7 @@ int covMatrix_extraction()
 
 	//if ((rec_theta_deg >= 18) && (rec_theta_deg <= 22) && (rec_phi_deg >= 58) && (rec_phi_deg <= 62)) {
 	//if ((rec_p >= 6) && (rec_p <= 7) && (rec_phi_deg >= 58) && (rec_phi_deg <= 62)) {
-	//if ((rec_p >= 6) && (rec_p <= 7) && (rec_theta_deg >= 18) && (rec_theta_deg <= 22)) {
+	if ((rec_p >= 6) && (rec_p <= 7) && (rec_theta_deg >= 18) && (rec_theta_deg <= 22)) {
 	  rec_p_vec->push_back(rec_p);
 	  mc_p_vec->push_back(mc_p);
 	  p_diff_vec->push_back(p_diff);
@@ -595,7 +583,7 @@ int covMatrix_extraction()
 	  //mc_tot_pz_vec->push_back(mc_tot_pz);       
 	  //rec_tot_E_vec->push_back(rec_tot_E); 
 	  //rec_tot_pz_vec->push_back(rec_tot_pz);
-	  //}
+	  }
     }      
   }
 }
@@ -625,7 +613,7 @@ void read_Part_Bank(hipo::bank PartBank, std::vector<int>* pid, std::vector<floa
   std::vector<float> py_vec;
   std::vector<float> pz_vec;
   std::vector<int> pid_vec;
-  std::vector<float> sector_vec;
+  std::vector<int> sector_vec;
   std::vector<float> chi2_vec;
   std::vector<int> ndf_vec;
   std::vector<int> status_vec;
@@ -635,6 +623,7 @@ void read_Part_Bank(hipo::bank PartBank, std::vector<int>* pid, std::vector<floa
     float current_chi2;
     int current_ndf;
     float current_chi2_ndf;
+    int current_sec;
     int   current_pid = PartBank.getInt("pid",j);
     float  current_px = PartBank.getFloat("px",j);
     float  current_py = PartBank.getFloat("py",j);
@@ -648,6 +637,7 @@ void read_Part_Bank(hipo::bank PartBank, std::vector<int>* pid, std::vector<floa
 	current_chi2 = RecTrack.getFloat("chi2",k);
 	current_ndf = RecTrack.getInt("NDF",k);
 	current_chi2_ndf = current_chi2/current_ndf;
+	current_sec = RecTrack.getInt("sector",k);
       }
     }
     //Rather than requiring the correct pid, just require the correct charge
@@ -659,11 +649,12 @@ void read_Part_Bank(hipo::bank PartBank, std::vector<int>* pid, std::vector<floa
       chi2_vec.push_back(current_chi2);
       ndf_vec.push_back(current_ndf);
       status_vec.push_back(current_status);
+      sector_vec.push_back(current_sec);
     }
   }
 
   //Only save the particle info if there is just one particle of the correct charge per event
-  if (pid_vec.size() == 1 && (TMath::Abs(status_vec[0]) >= 2000 && TMath::Abs(status_vec[0]) < 3000)) { //y && (chi2_ndf_vec[0] > 1 && chi2_ndf_vec[0] < 10)) {
+  if (pid_vec.size() == 1 && (TMath::Abs(status_vec[0]) >= 2000 && TMath::Abs(status_vec[0]) < 3000) && (sector_vec[0] == 2)) {
     px->push_back(px_vec[0]);      
     py->push_back(py_vec[0]);   
     pz->push_back(pz_vec[0]);   

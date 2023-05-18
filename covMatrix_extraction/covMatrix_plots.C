@@ -27,6 +27,9 @@ int covMatrix_plots()
   //Get covariance matrix values from file
   int N_lines = 0;
   FILE *cov_inFile = fopen("/work/clas12/reedtg/clas12_kinematic_fitter/dev_trevor/cov_matrix_txt_files/matrix_elements_pip_sec2.txt", "r");
+  //FILE *cov_inFile = fopen("/work/clas12/reedtg/clas12_kinematic_fitter/dev_trevor/cov_matrix_txt_files/matrix_elements_pip_sec2_fixed_P_and_theta_25_phi_bins.txt", "r");
+  //FILE *cov_inFile = fopen("/work/clas12/reedtg/clas12_kinematic_fitter/dev_trevor/cov_matrix_txt_files/matrix_elements_pip_sec2_fixed_P_and_phi_25_theta_bins.txt", "r");
+  //FILE *cov_inFile = fopen("/work/clas12/reedtg/clas12_kinematic_fitter/dev_trevor/cov_matrix_txt_files/matrix_elements_pip_sec2_fixed_angle_25_P_bins.txt", "r");
   int ch;
   
   //Count number of lines in input file
@@ -102,8 +105,9 @@ int covMatrix_plots()
   
   //Plots
   TString part = "#pi^{+}";
-  TString varying_kin = "P";
+  //TString varying_kin = "P";
   //TString varying_kin = "#theta";
+  TString varying_kin = "#phi";
   /*
   std::vector<TString> kin_var = {"P", "#theta", "#phi"};
   std::vector<TString> C_elements = {"C_{P}", "C_{#theta}", "C_{#phi}", "C_{P #phi}", "C_{P #theta}", "C_{#theta #phi}"};
@@ -133,6 +137,7 @@ int covMatrix_plots()
   double bin_center[N_lines];
   double C_P_div_P[N_lines];
   double C_theta_times_P[N_lines];
+  N_lines = N_lines - 3;
   if (varying_kin == "P") { 
     for(int j = 0; j < N_lines; ++j) {
       bin_center[j] = P_bin_center[j];
@@ -150,11 +155,12 @@ int covMatrix_plots()
   else if (varying_kin == "#phi") {
     for(int j = 0; j < N_lines; ++j) {
       bin_center[j] = phi_bin_center[j];
+      //std::cout << "Phi values: " << phi_bin_center[j] << std::endl;
       C_P_div_P[j] = C_P[j] / P_bin_center[j];
       C_theta_times_P[j] = C_theta[j] * theta_bin_center[j];
     }
   }
-
+  //std::cout << "Phi values: " << bin_center << std::endl;
   //TGraph *C_P_plot = new TGraph(N_lines, bin_center, C_P_div_P);
   //TGraph *C_theta_plot = new TGraph(N_lines, bin_center, C_theta_times_P);
   TGraph *C_P_plot = new TGraph(N_lines, bin_center, C_P);
@@ -169,7 +175,8 @@ int covMatrix_plots()
   C_P_plot->SetMarkerStyle(8);
   C_P_plot->SetMarkerSize(0.5);
   C_P_plot->SetTitle("C_{P}");
-  C_P_plot->GetYaxis()->SetTitle("C_{P}");
+  //C_P_plot->GetYaxis()->SetTitle("C_{P}");
+  C_P_plot->GetYaxis()->SetTitle("C_{P}/P");
   C_P_plot->GetYaxis()->SetTitleSize(0.07);
   C_P_plot->GetYaxis()->SetLabelSize(0.07);
   C_P_plot->GetYaxis()->SetMaxDigits(2);
@@ -187,7 +194,8 @@ int covMatrix_plots()
   C_theta_plot->SetMarkerStyle(8);
   C_theta_plot->SetMarkerSize(0.5);
   C_theta_plot->SetTitle("C_{#theta}");
-  C_theta_plot->GetYaxis()->SetTitle("C_{#theta}");
+  //C_theta_plot->GetYaxis()->SetTitle("C_{#theta}");
+  C_theta_plot->GetYaxis()->SetTitle("C_{#theta}*P");
   C_theta_plot->GetYaxis()->SetTitleSize(0.07);
   C_theta_plot->GetYaxis()->SetLabelSize(0.07);
   C_theta_plot->GetYaxis()->SetMaxDigits(2);
