@@ -1,4 +1,4 @@
-CFILES := covMatrix_single_particle covMatrix_plots
+CFILES := covMatrix_single_particle covMatrix_plots covMatrix_plots_ver2 covMatrix_plots_read_ttree
 
 ROOTFLAGS := `root-config --cflags --glibs`
 
