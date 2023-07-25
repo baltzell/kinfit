@@ -27,6 +27,7 @@ public:
     {
     }
 
+    // Constructor with covariance diagonal covariance matrix
     KinParticle(TLorentzVector in_vector, double in_mass, std::vector<Double_t> in_sigmas)
         : _vector(in_vector),
           _mass(in_mass)
@@ -38,6 +39,14 @@ public:
         }
         _Cov_from_sigmas.Sqr();
         SetCovMatrix(_Cov_from_sigmas);
+    }
+
+    // Constructor with covariance matrix constructed using TH3D
+    KinParticle(TLorentzVector in_vector, double in_mass, KinCovariance in_Cov, int sector)
+        : _vector(in_vector),
+          _mass(in_mass)
+    {
+        SetCovMatrix(in_Cov.Interpolate(sector, in_vector));
     }
 
     TLorentzVector GetVector() { return _vector; }

@@ -7,6 +7,7 @@
 #include "TMatrixD.h"
 #include "TLorentzVector.h"
 
+#include "KinCovariance.h"
 #include "KinParticle.h"
 #include "KinConstraint_EnergyMomentum.h"
 #include "KinConstraint_InvMass.h"
@@ -23,6 +24,8 @@ public:
     double GetConfidenceLevel() { return _confLevel; }
     double GetChi2() { return _chi2; }
     double GetNDF() { return _ndf_tot; }
+    double HasConverged() { return _converged; }
+    bool IsCovarianceInvertible() { return _is_covariance_invertible; }
     TVectorD GetPulls() { return _pulls; }
     std::vector<TLorentzVector> GetFitted4Vectors() { return _Ps_y; }
 
@@ -31,8 +34,10 @@ private:
     TVectorD _pulls;
     double _chi2;
     int _nvars_y;
-    int _nconstraints_tot = 0; // Total number of constraint in the fit. This number is updated for each constraint added to the fit
-    int _ndf_tot = 0;          // Total number of degrees of freedom of the fit. This number is updated for each constraint added to the fit
+    int _nconstraints_tot = 0;            // Total number of constraint in the fit. This number is updated for each constraint added to the fit
+    int _ndf_tot = 0;                     // Total number of degrees of freedom of the fit. This number is updated for each constraint added to the fit
+    bool _is_covariance_invertible = true; // Check if the covariance matrix is invertible, if not, the fit is skipped.
+    bool _converged = false; //Need of a status indication, bool for now, might need some more complex one
 
     TVectorD _eta;         // Measured vector Eq.1
     TVectorD _sigma2_etas; // Measured errors for each measured quantities Eq.19
@@ -101,9 +106,20 @@ public:
 
         _C_eta = C_n;
 
-        _C_eta_Inv = _C_eta;
-        _C_eta_Inv.SetTol(1.e-30);
-        _C_eta_Inv.Invert();
+
+        cout<<"compute determinant"<<endl;
+        //Compute determinant to check if the covariance in invertible
+        _C_eta.SetTol(1.e-30);
+        _is_covariance_invertible =_C_eta.Determinant()>(1.e-30);
+        cout<<_is_covariance_invertible<<" "<<_C_eta.Determinant()<<"\n";
+        if (! _is_covariance_invertible)_C_eta.Print();
+
+        if (_is_covariance_invertible)
+        {
+            _C_eta_Inv = _C_eta;
+            _C_eta_Inv.SetTol(1.e-30);
+            _C_eta_Inv.Invert();
+        }
 
         TMatrixDDiag diag(_C_eta);
         _sigma2_etas = diag;
@@ -147,6 +163,13 @@ public:
         // the number of consecutive iterations that have resulted in reversal:
         int n_iter_reversed = 0;
 
+        //verify that the covariance matrix is invertible
+        if(!_is_covariance_invertible) {
+        cout<<"Covariance matrix is not invertible ! No fitting performed \n";
+            _converged=false;
+            return;
+        }
+
         while (n_iter < max_iter)
         {
             // store the chi2 from the previous iteration:
@@ -184,6 +207,7 @@ public:
         /////////////////////////////////////////
         // Compute the outputs: Pulls, Confidence levels, and fitted vectors
         /////////////////////////////////////////
+        _converged=true;
         PostProcess();
     }
 
@@ -206,12 +230,12 @@ private:
         int concatenate_index = 0;
         for (auto cons : _Cons)
         {
-            //Concatenate constraint vector
+            // Concatenate constraint vector
             _c.SetSub(concatenate_index, cons->getConstraint(_P_inits, get4Vectors(&_y, _masses_y)));
 
-            //Concatenate derivative matrix
+            // Concatenate derivative matrix
             _B.SetSub(concatenate_index, 0, cons->constructBMatrix(_P_inits, get4Vectors(&_y, _masses_y)));
-            concatenate_index += cons->GetNconstraints(); //Updating the index where to concatenate the next matrix
+            concatenate_index += cons->GetNconstraints(); // Updating the index where to concatenate the next matrix
         }
 
         TMatrixD BT = _B;
