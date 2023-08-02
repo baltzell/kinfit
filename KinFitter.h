@@ -90,6 +90,8 @@ public:
             // Create block diagonal matrix with covariances:
             TMatrixDSub(C_n, 0 + 3 * idx, 2 + 3 * idx, 0 + 3 * idx, 2 + 3 * idx) = C_in_P;
 
+            _is_covariance_invertible = _is_covariance_invertible && in_P.Is_good_cov_matrix();
+
             idx++;
         }
 
@@ -107,12 +109,17 @@ public:
         _C_eta = C_n;
 
 
-        cout<<"compute determinant"<<endl;
+        //cout<<"compute determinant"<<endl;
         //Compute determinant to check if the covariance in invertible
         _C_eta.SetTol(1.e-30);
-        _is_covariance_invertible =_C_eta.Determinant()>(1.e-30);
-        cout<<_is_covariance_invertible<<" "<<_C_eta.Determinant()<<"\n";
-        if (! _is_covariance_invertible)_C_eta.Print();
+        _is_covariance_invertible = _is_covariance_invertible && (_C_eta.Determinant()>(1.e-30));
+        //cout<<_is_covariance_invertible<<" "<<_C_eta.Determinant()<<"\n";
+       /*if (! _is_covariance_invertible)
+        {
+             cout<<"Covariance matrix is not invertible ! No fitting performed \n";
+            _C_eta.Print();
+        cout<<_Ps_y[0].P()<<" "<<_Ps_y[0].Theta()*TMath::RadToDeg()<<" "<<_Ps_y[0].Phi()*TMath::RadToDeg()<<" "<<_Ps_y[1].P()<<" "<<_Ps_y[1].Theta()*TMath::RadToDeg()<<" "<<_Ps_y[1].Phi()*TMath::RadToDeg()<<endl;
+        }*/
 
         if (_is_covariance_invertible)
         {
@@ -165,7 +172,6 @@ public:
 
         //verify that the covariance matrix is invertible
         if(!_is_covariance_invertible) {
-        cout<<"Covariance matrix is not invertible ! No fitting performed \n";
             _converged=false;
             return;
         }
@@ -208,6 +214,8 @@ public:
         // Compute the outputs: Pulls, Confidence levels, and fitted vectors
         /////////////////////////////////////////
         _converged=true;
+        //_C_eta.Print();
+        
         PostProcess();
     }
 
@@ -286,8 +294,8 @@ private:
         _sigma2_ys = diag;
         TVectorD denom = _sigma2_etas - _sigma2_ys;
         denom.Sqrt();
-        _pulls = ElementDiv(num, denom);
-
+       _pulls = ElementDiv(num, denom);
+       
         // Set final vector - should be changed at some point
         _Ps_y = get4Vectors(&_y, _masses_y);
     }

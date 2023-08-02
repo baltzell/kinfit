@@ -225,8 +225,6 @@ public:
 
             _h_chi->Fill(kin->GetChi2() / kin->GetNDF());
 
-            cout << kin->GetConfidenceLevel() << endl;
-
             if (!is_background)
                 _h_lik_Signal->Fill(kin->GetConfidenceLevel());
             else
