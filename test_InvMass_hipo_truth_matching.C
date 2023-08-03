@@ -15,9 +15,11 @@ void read_Rec_Part_Bank(hipo::bank PartBank, hipo::bank MCMatchBank, hipo::bank 
 void read_MC_Part_Bank(hipo::bank Bank, std::vector<int> required_pids, std::vector<int> *pid_list, std::vector<TLorentzVector> *vec_list, std::vector<int> *in_part_index);
 int get_sector(int index, hipo::bank TrackBank);
 bool pass_fid_cut_DC(int index, hipo::bank TrajBank);
+bool pass_limit_cov_matrix(int sector, TLorentzVector vector, double limit_up_P, double limit_down_P, double limit_up_Theta, double limit_down_Theta, double limit_up_Phi, double limit_down_Phi);
 
 TH2F *pass_fid_cut = new TH2F("pass", "pass", 60, -180, 180, 60, 0, 45);
 TH2F *fail_fid_cut = new TH2F("pass", "pass", 60, -180, 180, 60, 0, 45);
+TH2F *P_pip_P_pim = new TH2F("PpipVSPpim", "PpipVSPpim", 60, 1.0, 11., 60, 1.0, 11.0);
 
 int test_InvMass_hipo_truth_matching()
 {
@@ -35,6 +37,7 @@ int test_InvMass_hipo_truth_matching()
 
     //---------------Specify input file or directory path---------------//
     char dir_path[256] = "../KinematicFitter/Input_files_for_test//New_simu_for_kinfit.hipo"; // New_version_dipion_kinfit.hipo";
+    //char dir_path[256] = "/volatile/clas12/reedtg/clas12_kinfitter/rho_to_pippim_gen_events_7-20-23/rho_to_pippim/cooked/";
     //------------------------------------------------------------------//
 
     DIR *dr;
@@ -44,6 +47,7 @@ int test_InvMass_hipo_truth_matching()
     // If dir_path is a directory, loop through all files within it, with a max number of file limit
     int in_file_count = 0;
     int max_number_file = 50;
+
     if (dr)
     {
         while ((en = readdir(dr)) != NULL && in_file_count < max_number_file)
@@ -53,15 +57,12 @@ int test_InvMass_hipo_truth_matching()
                 in_file_count++;
                 std::string dir_path_str(dir_path);
                 dir_path_str.append(en->d_name);
-                // dir_path_str.append("/dst.hipo");
-                //  Convert file path string back to char to be used by read_Hipo
+                
                 int string_l = dir_path_str.length();
                 char dir_path_char[256];
                 strcpy(dir_path_char, dir_path_str.c_str());
                 cout << "File name: " << dir_path_char << endl;
                 read_Hipo(dir_path_char, required_pids, masses, target, beam, test, parts);
-                // Print list of all read hipo files to input_files.txt
-                // InFileList << dir_path << en->d_name << "/dst.hipo" << std::endl;
             }
         }
         closedir(dr); // close all directory
@@ -76,14 +77,15 @@ int test_InvMass_hipo_truth_matching()
     TCanvas *fid_cut = new TCanvas("fid_cut", "fid_cut", 1000, 1000);
     pass_fid_cut->Draw("col");
     fail_fid_cut->SetMarkerColor(kRed);
-    // fail_fid_cut->Draw("same");
     fid_cut->SaveAs("fidCut.pdf");
 
     TCanvas *fid_cut_fail = new TCanvas("fid_cut_fail", "fid_cut", 1000, 1000);
-    // pass_fid_cut->Draw("col");
-    // fail_fid_cut->SetMarkerColor(kRed);
     fail_fid_cut->Draw("col");
     fid_cut_fail->SaveAs("fidCutfail.pdf");
+
+    TCanvas *can_mom = new TCanvas("can_mom", "can_mpm", 1000, 1000);
+    P_pip_P_pim->Draw("col");
+    can_mom->SaveAs("can_mom.pdf");
 
     return 0;
 }
@@ -123,10 +125,15 @@ void read_Hipo(char inputFile[256], std::vector<int> required_pids, std::vector<
     KinCovariance Covariance_PiPlus("../KinematicFitter/pip_minEventCut_covariances.root");  //("pip_covariances.root");//
     KinCovariance Covariance_PiMinus("../KinematicFitter/pim_minEventCut_covariances.root"); //("pip_covariances.root");//
 
-    double limit_down_P = 5.0;
-    double limit_up_P = 6.0;
-    double limit_down_Theta = 15.0;
-    double limit_up_Theta = 17.0;
+    //KinCovariance Covariance_PiPlus("/work/clas12/reedtg/clas12_kinematic_fitter/dev_trevor/pip_minEventCut_covariances.root");  //("pip_covariances.root");//
+    //KinCovariance Covariance_PiMinus("/work/clas12/reedtg/clas12_kinematic_fitter/dev_trevor/pim_minEventCut_covariances.root"); //("pip_covariances.root");//
+
+    double limit_down_P = 1.2;//2.0;    // 5.0;//
+    double limit_up_P = 10.8;//3.0;      // 6.0;//
+    double limit_down_Theta = 6.; // 15.0;
+    double limit_up_Theta = 34.0; // 17.0;
+    double limit_down_Phi = 32.0;
+    double limit_up_Phi = 88.0;
 
     while (reader.next() == true /*&& total_events<10*/)
     {
@@ -157,59 +164,25 @@ void read_Hipo(char inputFile[256], std::vector<int> required_pids, std::vector<
         // Proceed to kinematic fitting if reconstructed event meets particle requirements
         if (vec_list.size() == 2)
         {
-
-            // cout << "Event number " << total_events << endl;
-
             good_events++;
             event_num = RUN.getInt("event", 0);
             std::vector<KinParticle> kin_parts;
 
-            /*cout << "Event number " << total_events << endl;
-            cout << vec_list.size() << endl;
-            cout << vec_list[0].P() << " " << vec_list[0].Theta() * TMath::RadToDeg() << endl;
-            cout << vec_list[1].P() << " " << vec_list[1].Theta() * TMath::RadToDeg() << endl;*/
+            P_pip_P_pim->Fill(vec_list[0].P(), vec_list[1].P());
 
             for (int ipart = 0; ipart < pid_list.size(); ++ipart)
             {
-                /*if (vec_list[ipart].P() < 1.2 || vec_list[ipart].P() > 10.8 || vec_list[ipart].Theta() * TMath::RadToDeg() > 34. || vec_list[ipart].Theta() * TMath::RadToDeg() < 6.)
-                    continue;*/
-
-                if (vec_list[ipart].P() < limit_down_P || vec_list[ipart].P() > limit_up_P || vec_list[ipart].Theta() * TMath::RadToDeg() > limit_up_Theta || vec_list[ipart].Theta() * TMath::RadToDeg() < limit_down_Theta)
-                    continue;
-
-                double Temp_Phi_in_vector_0 = (vec_list[0].Phi() * TMath::RadToDeg() < 0. && sector_list[0] > 1) ? vec_list[0].Phi() * TMath::RadToDeg() + 360 : vec_list[0].Phi() * TMath::RadToDeg(); // implement that and edge fiducial cuts
-                double Phi_in_vector_0 = (sector_list[0] == 1) ? Temp_Phi_in_vector_0 + 60 : Temp_Phi_in_vector_0 - (sector_list[0] - 2) * 60.;
-
-                double Temp_Phi_in_vector_1 = (vec_list[1].Phi() * TMath::RadToDeg() < 0. && sector_list[1] > 1) ? vec_list[1].Phi() * TMath::RadToDeg() + 360 : vec_list[1].Phi() * TMath::RadToDeg(); // implement that and edge fiducial cuts
-                double Phi_in_vector_1 = (sector_list[1] == 1) ? Temp_Phi_in_vector_1 + 60 : Temp_Phi_in_vector_1 - (sector_list[1] - 2) * 60.;
-
-                if (Phi_in_vector_1 < 31. || Phi_in_vector_1 > 88. || Phi_in_vector_0 < 32. || Phi_in_vector_0 > 88.)
+                if (!pass_limit_cov_matrix(sector_list[ipart], vec_list[ipart], limit_up_P, limit_down_P, limit_up_Theta, limit_down_Theta, limit_up_Phi, limit_down_Phi))
                     continue;
 
                 KinCovariance Current_Covmatrix = (pid_list[ipart] == 211) ? Covariance_PiPlus : Covariance_PiMinus; // attributes PiMinus Cov matrix to anything but pi+
                 kin_parts.push_back(KinParticle(vec_list[ipart], 0.139, Current_Covmatrix, sector_list[ipart]));
             }
 
-            if (vec_list[0].P() < limit_down_P || vec_list[0].P() > limit_up_P || vec_list[0].Theta() * TMath::RadToDeg() > limit_up_Theta || vec_list[0].Theta() * TMath::RadToDeg() < limit_down_Theta)
-                continue;
-            if (vec_list[1].P() < limit_down_P || vec_list[1].P() > limit_up_P || vec_list[1].Theta() * TMath::RadToDeg() > limit_up_Theta || vec_list[1].Theta() * TMath::RadToDeg() < limit_down_Theta)
-                continue;
-
-            /*if (vec_list[0].P() < 1.2 || vec_list[0].P() > 10.8 || vec_list[0].Theta() * TMath::RadToDeg() > 34. || vec_list[0].Theta() * TMath::RadToDeg() < 6.)
-                continue;
-            if (vec_list[1].P() < 1.2 || vec_list[1].P() > 10.8 || vec_list[1].Theta() * TMath::RadToDeg() > 34. || vec_list[1].Theta() * TMath::RadToDeg() < 6.)
-                continue;*/
-
-            double Temp_Phi_in_vector_0 = (vec_list[0].Phi() * TMath::RadToDeg() < 0. && sector_list[0] > 1) ? vec_list[0].Phi() * TMath::RadToDeg() + 360 : vec_list[0].Phi() * TMath::RadToDeg(); // implement that and edge fiducial cuts
-            double Phi_in_vector_0 = (sector_list[0] == 1) ? Temp_Phi_in_vector_0 + 60 : Temp_Phi_in_vector_0 - (sector_list[0] - 2) * 60.;
-
-            double Temp_Phi_in_vector_1 = (vec_list[1].Phi() * TMath::RadToDeg() < 0. && sector_list[1] > 1) ? vec_list[1].Phi() * TMath::RadToDeg() + 360 : vec_list[1].Phi() * TMath::RadToDeg(); // implement that and edge fiducial cuts
-            double Phi_in_vector_1 = (sector_list[1] == 1) ? Temp_Phi_in_vector_1 + 60 : Temp_Phi_in_vector_1 - (sector_list[1] - 2) * 60.;
-
-            // cout << "Phi " << Phi_in_vector_0 << "   " << Phi_in_vector_1 << endl;
-
-            if (Phi_in_vector_1 < 32. || Phi_in_vector_1 > 88. || Phi_in_vector_0 < 32. || Phi_in_vector_0 > 88.)
-                continue;
+            if (!pass_limit_cov_matrix(sector_list[0], vec_list[0], limit_up_P, limit_down_P, limit_up_Theta, limit_down_Theta, limit_up_Phi, limit_down_Phi))
+                    continue;
+            if (!pass_limit_cov_matrix(sector_list[1], vec_list[1], limit_up_P, limit_down_P, limit_up_Theta, limit_down_Theta, limit_up_Phi, limit_down_Phi))
+                    continue;
 
             auto kin = new KinFitter({KinParticle(target), KinParticle(beam)}, kin_parts);
             kin->Add_InvMass_Constraint(constraint_idx, 0.77);
@@ -241,8 +214,6 @@ void read_Rec_Part_Bank(hipo::bank PartBank, hipo::bank MCMatchBank, hipo::bank 
     int index_pi_plus = MCMatchBank.getInt("pindex", 2);
     int index_pi_minus = MCMatchBank.getInt("pindex", 3);
 
-    // PartBank.show();
-
     // fail safe for truth matching
     if (index_pi_plus == index_pi_minus)
         return;
@@ -267,7 +238,6 @@ void read_Rec_Part_Bank(hipo::bank PartBank, hipo::bank MCMatchBank, hipo::bank 
     }
 
     int status_pi_minus = PartBank.getInt("status", index_pi_minus);
-    // cout<<pass_fid_cut_DC(index_pi_minus, TrajBank)<<endl;
     if (((int)(abs(status_pi_minus) / 1000) == 2) && pass_fid_cut_DC(index_pi_minus, TrajBank))
     {
         int pid_pi_minus = PartBank.getInt("pid", index_pi_minus);
@@ -331,8 +301,7 @@ int get_sector(int index, hipo::bank TrackBank)
 bool pass_fid_cut_DC(int index, hipo::bank TrajBank)
 {
     int nrows_traj = TrajBank.getRows();
-    // cout<<"index particle "<<index<<endl;
-    // TrajBank.show();
+    
     bool pass_cut = true;
     for (int i = 0; i < nrows_traj; i++)
     {
@@ -342,11 +311,22 @@ bool pass_fid_cut_DC(int index, hipo::bank TrajBank)
         float edge = TrajBank.getFloat("edge", i);
 
         pass_cut = (pass_cut && !(pindex == index && detector == 6 && layer == 6 && edge < 5.));
-
-        // if(pindex == index && detector == 6 && edge < 10.){TrajBank.show(); cout<<"index "<<index<<endl;}
     }
-    // cout<<"pass_cut "<<pass_cut<<endl;
     return pass_cut;
+}
+
+bool pass_limit_cov_matrix(int sector, TLorentzVector vector, double limit_up_P, double limit_down_P, double limit_up_Theta, double limit_down_Theta, double limit_up_Phi, double limit_down_Phi)
+{
+    if (vector.P() < limit_down_P || vector.P() > limit_up_P || vector.Theta() * TMath::RadToDeg() > limit_up_Theta || vector.Theta() * TMath::RadToDeg() < limit_down_Theta)
+        return false;
+
+    double Temp_Phi_in_vector = (vector.Phi() * TMath::RadToDeg() < 0. && sector > 1) ? vector.Phi() * TMath::RadToDeg() + 360 : vector.Phi() * TMath::RadToDeg(); // implement that and edge fiducial cuts
+    double Phi_in_vector = (sector == 1) ? Temp_Phi_in_vector + 60 : Temp_Phi_in_vector - (sector - 2) * 60.;
+
+    if (Phi_in_vector < limit_down_Phi || Phi_in_vector > limit_up_Phi)
+        return false;
+
+    return true;
 }
 
 /*int main()
