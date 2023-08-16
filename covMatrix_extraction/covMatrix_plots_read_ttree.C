@@ -62,8 +62,9 @@ int covMatrix_plots()
   //FILE *cov_inFile = fopen("/work/clas12/reedtg/clas12_kinematic_fitter/dev_trevor/cov_matrix_txt_files/matrix_elements_pip_sec2_fixed_P_and_phi_25_theta_bins.txt", "r");
   //FILE *cov_inFile = fopen("/work/clas12/reedtg/clas12_kinematic_fitter/dev_trevor/cov_matrix_txt_files/matrix_elements_pip_sec2_fixed_angle_25_P_bins.txt", "r");
   //const char* filename = "/work/clas12/reedtg/clas12_kinematic_fitter/updated_4-16-23/kinfit/covMatrix_extraction/covariances.root";
-  const char* filename = "/work/clas12/reedtg/clas12_kinematic_fitter/dev_trevor/covariances.root";
+  //const char* filename = "/work/clas12/reedtg/clas12_kinematic_fitter/dev_trevor/covariances.root";
   //const char* filename = "/work/clas12/reedtg/clas12_kinematic_fitter/updated_4-16-23/kinfit/covMatrix_extraction/covariances.root";
+  const char* filename = "/u/home/reedtg/clas12_kinfitter/kinfit/covMatrix_extraction/pim_covariances.root";
   TFile *cov_inFile = TFile::Open(filename); 
 
   // Get the TTree from the file
@@ -137,8 +138,9 @@ int covMatrix_plots()
   for (Long64_t entry = 0; entry < numEntries; ++entry) {
     tree->GetEntry(entry);
     if (entry < 100) {
-      //std::cout << "events = " << event_count << std::endl;
-      //std::cout << "P_bin_center = " << P_bin_center << std::endl;
+      std::cout << "events = " << event_count << std::endl;
+      std::cout << "P_bin_center = " << P_bin_center << std::endl;
+      std::cout << "C_P = " << C_P << std::endl;
     }
     P_bin_vec.push_back(P_bin_center);
     theta_bin_vec.push_back(theta_bin_center);
@@ -369,7 +371,7 @@ int covMatrix_plots()
  
     //Loop through the cut tree to get the values for plotting
     TString kin_axis_title;
-    int min_events = 1000;
+    int min_events = 0;
     int passed_min_events = 0;
     Long64_t numCutEntries = cutTree->GetEntries();
     for (Long64_t entry = 0; entry < numCutEntries; ++entry) {

@@ -1,4 +1,3 @@
-
 TESTS := test_4C_hipo test_4C test_MissingParticle test_InvMass test_MissAndInv
 
 TESTURL := https://clasweb.jlab.org/clas12offline/distribution/coatjava/validation_files/eb/5.1-fid-r11/

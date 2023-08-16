@@ -28,6 +28,9 @@ void read_Hipo(char in_data[256], int part_charge, float part_mass, std::vector<
 void read_Part_Bank(hipo::bank PartBank, std::vector<int>* pid, std::vector<float>* px, std::vector<float>* py, std::vector<float>* pz);
 void read_Part_Bank(hipo::bank PartBank, hipo::bank CalBank, hipo::bank RecTrack, std::vector<int>* pid, std::vector<float>* px, std::vector<float>* py, std::vector<float>* pz, std::vector<int> *rec_status, std::vector<float> *chi2, std::vector<int> *ndf, int& event_count);
 
+//Output file for saving any information for trouble shooting 
+std::ofstream InfoFile("event_info.txt");
+
 // Function to get index of an element in vector
 int getIndex(std::vector<int> v, int K) {
   int index = -1;
@@ -76,16 +79,39 @@ int Sturges_rule(Int_t entries) {
   return N_bins;
 }
 
-double calculateCovariance(const std::vector<double>& x, const std::vector<double>& y, double x_low, double x_upp, double y_low, double y_upp) {
-  Int_t numValues = x.size(); // Get the number of values in the arrays                                                                                                                                      
+std::tuple<double, int> calculateCovariance(const char* kin_var1, const char* kin_var2, const std::vector<double>& p_diff, const std::vector<double>& theta_diff, const std::vector<double>& phi_diff, double p_low, double p_upp, double theta_low, double theta_upp, double phi_low, double phi_upp) {
+  
+  std::vector<double> x;
+  std::vector<double> y;
+  
+  if (strcmp(kin_var1, "p") == 0) {
+    x = p_diff;
+  }
+  else if (strcmp(kin_var1, "theta") == 0) {
+    x = theta_diff;
+  }
+  else if (strcmp(kin_var1, "phi") == 0 ) {
+    x = phi_diff;
+  }
+  if (strcmp(kin_var2, "p") == 0) {
+    y = p_diff;
+  }
+  else if (strcmp(kin_var2, "theta") == 0){
+    y = theta_diff;
+  }
+  else if (strcmp(kin_var2, "phi") == 0 ) {
+    y = phi_diff;
+  }
+  Int_t numValues = p_diff.size(); // Get the number of values in the arrays (any of the kinematic variables can be used for this)                                                                                                                                    
   double covariance = 0;
-  int good_counts = 0;
+  int good_counts = 0;  //good_counts are those that are within the kinematic (rec - MC) bounds, to remove outliers
   double x_tot = 0;
   double y_tot = 0;
   std::vector<double> x_good;
   std::vector<double> y_good;
+  
   for (int j = 0; j < numValues; j++) {
-    if ((x[j] > x_low && x[j] < x_upp) && (y[j] > y_low && y[j] < y_upp)) {
+    if ((p_diff[j] > p_low && p_diff[j] < p_upp) && (theta_diff[j] > theta_low && theta_diff[j] < theta_upp) && (phi_diff[j] > phi_low && phi_diff[j] < phi_upp)) {
       x_tot += x[j];
       y_tot += y[j];
       good_counts++;
@@ -93,17 +119,44 @@ double calculateCovariance(const std::vector<double>& x, const std::vector<doubl
       y_good.push_back(y[j]);
     }
   }
+  
   double x_mean = x_tot / good_counts;
   double y_mean = y_tot / good_counts;
   for (Int_t i = 0; i < good_counts; ++i) {
-     covariance += (x_good[i] - x_mean) * (y_good[i] - y_mean);
+    covariance += (x_good[i] - x_mean) * (y_good[i] - y_mean);
   }
   covariance /= (good_counts - 1);
-  return covariance;
+
+  return std::make_tuple(covariance, good_counts);
 }
 
-double calculateCovarianceError(const std::vector<double>& x, const std::vector<double>& y, int N_bootstrapSamples, double x_low, double x_upp, double y_low, double y_upp) {
-  double observedCovariance = calculateCovariance(x, y, x_low, x_upp, y_low, y_upp);
+
+double calculateCovarianceError(const char* kin_var1, const char* kin_var2, int N_bootstrapSamples, const std::vector<double>& p_diff, const std::vector<double>& theta_diff, const std::vector<double>& phi_diff, double p_low, double p_upp, double theta_low, double theta_upp, double phi_low, double phi_upp) {
+  double observedCovariance;
+  int N_good_events;
+  std::tie(observedCovariance, N_good_events) = calculateCovariance(kin_var1, kin_var2, p_diff, theta_diff, phi_diff, p_low, p_upp, theta_low, theta_upp, phi_low, phi_upp);
+
+  std::vector<double> x;
+  std::vector<double> y;
+
+  if (strcmp(kin_var1, "p") == 0) {
+    x = p_diff;
+  }
+  else if (strcmp(kin_var1, "theta") == 0) {
+    x = theta_diff;
+  }
+  else if (strcmp(kin_var1, "phi") == 0 ) {
+    x = phi_diff;
+  }
+  if (strcmp(kin_var2, "p") == 0) {
+    y = p_diff;
+  }
+  else if (strcmp(kin_var2, "theta") == 0){
+    y = theta_diff;
+  }
+  else if (strcmp(kin_var2, "phi") == 0 ) {
+    y = phi_diff;
+  }
 
   // Perform bootstrapping   
   int N_events = x.size();
@@ -117,11 +170,26 @@ double calculateCovarianceError(const std::vector<double>& x, const std::vector<
     // Generate a bootstrap sample by resampling with replacement         
     for (int i = 0; i < N_events; ++i) {
       int randomIndex = dist(gen);
-      bootstrapX.push_back(x[randomIndex]);
-      bootstrapY.push_back(y[randomIndex]);
+      // Only include those events in the bootstrapping samples which meet the outlier removal requirements
+      if ((p_diff[i] > p_low && p_diff[i] < p_upp) && (theta_diff[i] > theta_low && theta_diff[i] < theta_upp) && (phi_diff[i] > phi_low && phi_diff[i] < phi_upp)) {
+	bootstrapX.push_back(x[randomIndex]);
+	bootstrapY.push_back(y[randomIndex]);
+      }
     }
     // Calculate the covariance of the bootstrap sample  
-    double bootstrapCovariance = calculateCovariance(bootstrapX, bootstrapY, x_low, x_upp, y_low, y_upp);
+    double bootstrapCovariance;
+
+    double x_bootstrap_tot = std::accumulate(bootstrapX.begin(),bootstrapX.end(),0);
+    double y_bootstrap_tot = std::accumulate(bootstrapY.begin(),bootstrapY.end(),0);
+    std::vector<double> x_bootstrap;
+    std::vector<double> y_bootstrap;
+
+    double x_bootstrap_mean = x_bootstrap_tot / bootstrapX.size();
+    double y_bootstrap_mean = y_bootstrap_tot / bootstrapX.size();
+    for (Int_t i = 0; i < bootstrapX.size(); ++i) {
+      bootstrapCovariance += (bootstrapX[i] - x_bootstrap_mean) * (bootstrapY[i] - y_bootstrap_mean);
+    }
+    bootstrapCovariance /= (bootstrapX.size() - 1);
     bootstrapCovariances.push_back(bootstrapCovariance);
   }
   // Calculate the variance of the bootstrapped covariances 
@@ -137,15 +205,17 @@ double calculateCovarianceError(const std::vector<double>& x, const std::vector<
 }
 
 //Output file for saving any information for trouble shooting 
-std::ofstream InfoFile("event_info.txt");
+//std::ofstream InfoFile("event_info.txt");
 
 //Initialize the particle type and binning info
 const TString part_type = "#pi^{+}";
-const float part_mass = 0.13957;
-const int part_charge = 1;
-const int P_bins = 2;
-const int theta_bins = 2;
-const int phi_bins = 2;
+//const TString part_type = "#pi^{-}";
+float part_mass;
+int part_charge;
+
+const int P_bins = 25;
+const int theta_bins = 25;
+const int phi_bins = 25;
 
 //Set boundaries for the kinematics. This is necessaery to exclude outliers
 const double p_low = -1;
@@ -164,21 +234,24 @@ const std::vector<double> kin_delta_plots_low = {p_low, theta_low, phi_low};
 const std::vector<double> kin_delta_plots_high = {p_upp, theta_upp, phi_upp};
 
 //Use these values to set a maximum on the number of files that the reader loop will read and to set a number of elements for the vectors to be initilaized to
-const int max_files = 10;
+const int max_files = 5;
 const int N_events_per_file = 10000;
 const int N_events = max_files*N_events_per_file;
 
 int covMatrix_extraction()
 {
-  //---------------Specify input file or directory path---------------//                                                                                                                                  
+  //---------------Specify input file or directory path---------------//      
   //char in_data[256] = "/volatile/clas12/reedtg/clas12_kinfitter/cov_matrix/pip-sec2/cooked/out_pip-sec22.rec.hipo";
   //char in_data[256] = "/volatile/clas12/reedtg/clas12_kinfitter/cov_matrix/pip-sec2-/cooked/"; 
   //char in_data[256] = "/volatile/clas12/reedtg/clas12_kinfitter/cov_matrix/test_dir/";
-  char in_data[256] = "/volatile/clas12/reedtg/clas12_kinfitter/cov_matrix/pip-sec2-100mil_events/cooked/";
-  //------------------------------------------------------------------//                                                                                                                                   
+  //char in_data[256] = "/volatile/clas12/reedtg/clas12_kinfitter/cov_matrix/pip-sec2-100mil_events/cooked/";
+  char in_data[256] = "/volatile/clas12/reedtg/clas12_kinfitter/cov_matrix/pip-sec2-100mil_events_6-13-23/cooked/";
+  //char in_data[256] = "/volatile/clas12/reedtg/clas12_kinfitter/cov_matrix/pim-sec2-100mil_events_6-15-23/cooked/";
+  //char in_data[256] = "/volatile/clas12/reedtg/clas12_kinfitter/cov_matrix/pim-sec2-100mil_events_6-15-23/cooked/out_pim-sec2-100mil_events_6-15-23-9678.rec.hipo";
+  //------------------------------------------------------------------//       
 
 
-  //Declare vectors for storing kinematic info                                                                                                                                                             
+  //Declare vectors for storing kinematic info                  
   std::vector<float> p_diff_vec;
   std::vector<float> theta_diff_rad_vec;
   std::vector<float> phi_diff_rad_vec;
@@ -191,6 +264,17 @@ int covMatrix_extraction()
   std::vector<float> chi2_vec;
   std::vector<int> ndf_vec;
   int event_count = 0;
+
+  // Initilaize particle charge and mass
+  if ((strcmp(part_type, "#pi^{+}") == 0) || (strcmp(part_type, "#pi^{-}") == 0)) {
+    part_mass = 0.13957;
+    if (strcmp(part_type, "#pi^{+}") == 0) {
+      part_charge = 1;
+    }
+    else if (strcmp(part_type, "#pi^{-}") == 0) {
+      part_charge = -1;
+    }
+  }
 
   p_diff_vec.reserve(N_events);
   phi_diff_rad_vec.reserve(N_events);
@@ -232,6 +316,7 @@ int covMatrix_extraction()
   else {
     std::cout << "Not a directory. Only single input file: " << in_data << std::endl;
     read_Hipo(in_data, part_charge, part_mass, &mc_p_vec, &rec_p_vec, &mc_theta_deg_vec, &rec_theta_deg_vec, &mc_phi_deg_vec, &rec_phi_deg_vec, &p_diff_vec, &theta_diff_rad_vec, &phi_diff_rad_vec, &chi2_vec, &ndf_vec, event_count);
+    std::cout << p_diff_vec.size() << " events saved out of " << event_count << " events read." << std::endl;
   }
 
 
@@ -364,7 +449,7 @@ int covMatrix_extraction()
   // Create a ROOT file to store the data
   TFile* C_file = new TFile("covariances.root", "RECREATE");
 
-  // Create a TTree with four branches for the four dimensions
+  // Create a TTree
   TTree* C_tree = new TTree("covarianceTree", "Covariance Tree");
   double P, theta, phi, C_P, C_P_err, C_theta, C_theta_err, C_phi, C_phi_err, C_P_phi, C_P_phi_err, C_P_theta, C_P_theta_err, C_theta_phi, C_theta_phi_err, entries;
   C_tree->Branch("P", &P, "P/D");
@@ -391,52 +476,83 @@ int covMatrix_extraction()
   //Set up TH3 to store the binning info
   TH3* P_theta_and_phi = new TH3D("P_theta_and_phi", "P_theta_and_phi", P_bins, P_bin_min, P_bin_max, theta_bins, theta_bin_min, theta_bin_max, phi_bins, phi_bin_min, phi_bin_max);  
 
+  Int_t P_bin_num;
+  Int_t theta_bin_num;
+  Int_t phi_bin_num;
   //Loop through events saved from the input hipo file(s)
   for (int i = 0; i < mc_p_vec.size(); i++) {
-    Int_t P_bin_num =  P_theta_and_phi->GetXaxis()->FindBin(rec_p_vec[i]);
-    Int_t theta_bin_num =  P_theta_and_phi->GetYaxis()->FindBin(rec_theta_deg_vec[i]);
-    Int_t phi_bin_num =  P_theta_and_phi->GetZaxis()->FindBin(rec_phi_deg_vec[i]);
+    P_bin_num =  P_theta_and_phi->GetXaxis()->FindBin(rec_p_vec[i]);
+    theta_bin_num =  P_theta_and_phi->GetYaxis()->FindBin(rec_theta_deg_vec[i]);
+    phi_bin_num =  P_theta_and_phi->GetZaxis()->FindBin(rec_phi_deg_vec[i]);
     //InfoFile << "P_bin_num = " << P_bin_num << ", theta_bin_num = " << theta_bin_num << ", phi_bin_num = " << phi_bin_num << std::endl;
     
+    //If the conditions in the if-statement below are not met, it means that at least one of the reconstructed kinematics is outside the allowed range
     if (((P_bin_num > 0) && (P_bin_num <= P_bins)) && ((theta_bin_num > 0) && (theta_bin_num <= theta_bins)) && ((phi_bin_num > 0) && (phi_bin_num <= phi_bins))) { 
+
       //Save the kinematic variable info for this bin to be used in the calculateCovariance method defined at the beginning of this file
       p_diff_binned[P_bin_num-1][theta_bin_num-1][phi_bin_num-1].push_back(p_diff_vec[i]);
       phi_diff_binned[P_bin_num-1][theta_bin_num-1][phi_bin_num-1].push_back(phi_diff_rad_vec[i]);
       theta_diff_binned[P_bin_num-1][theta_bin_num-1][phi_bin_num-1].push_back(theta_diff_rad_vec[i]);
-    }
+    }  
   }
 
+  double P_bin_low;
+  double P_bin_high;
+  double theta_bin_low;
+  double theta_bin_high;
+  double phi_bin_low;
+  double phi_bin_high;
+  std::vector<double> p_diff_this_bin;
+  std::vector<double> theta_diff_this_bin;
+  std::vector<double> phi_diff_this_bin;
+  int tot_N_bins = P_bins * theta_bins * phi_bins;
+  p_diff_this_bin.reserve(tot_N_bins);
+  theta_diff_this_bin.reserve(tot_N_bins);
+  phi_diff_this_bin.reserve(tot_N_bins);
+  double variance_P;
+  double variance_theta;
+  double variance_phi;
+  double covariance_P_phi;
+  double covariance_P_theta;
+  double covariance_theta_phi;
+  int N_entries;    //This number could include outliers
+  int N_good_events;
+  double current_P_bin_center;
+  double current_theta_bin_center;
+  double current_phi_bin_center;
+  
   //Loop through the bins and calculate the covariances
   for (int pBin = 0; pBin < P_bins; pBin++) {
-    double P_bin_low = P_bin_min + pBin*P_bin_size;  
-    double P_bin_high = P_bin_low + P_bin_size;
+    P_bin_low = P_bin_min + pBin*P_bin_size;  
+    P_bin_high = P_bin_low + P_bin_size;
     for (int thetaBin = 0; thetaBin < theta_bins; thetaBin++) {
-      double theta_bin_low = theta_bin_min + thetaBin*theta_bin_size; 
-      double theta_bin_high = theta_bin_low + theta_bin_size;
+      theta_bin_low = theta_bin_min + thetaBin*theta_bin_size; 
+      theta_bin_high = theta_bin_low + theta_bin_size;
       for (int phiBin = 0; phiBin < phi_bins; phiBin++) {
-	double phi_bin_low = phi_bin_min + phiBin*phi_bin_size;
-	double phi_bin_high = phi_bin_low + phi_bin_size;
+	phi_bin_low = phi_bin_min + phiBin*phi_bin_size;
+	phi_bin_high = phi_bin_low + phi_bin_size;
 
-	//Get variances and covariances of the three kinematic variables: P, theta, and phi 
-	std::vector<double> p_diff_this_bin = p_diff_binned[pBin][thetaBin][phiBin];
-	std::vector<double> theta_diff_this_bin = theta_diff_binned[pBin][thetaBin][phiBin];
-	std::vector<double> phi_diff_this_bin = phi_diff_binned[pBin][thetaBin][phiBin];
+	p_diff_this_bin = p_diff_binned[pBin][thetaBin][phiBin];
+	theta_diff_this_bin = theta_diff_binned[pBin][thetaBin][phiBin];
+	phi_diff_this_bin = phi_diff_binned[pBin][thetaBin][phiBin];
+	InfoFile << "p_diff_this_bin = " << p_diff_this_bin.size() << std::endl; 
 
-	double variance_P = calculateCovariance(p_diff_this_bin, p_diff_this_bin, p_low, p_upp, p_low, p_upp);
-	double variance_theta = calculateCovariance(theta_diff_this_bin, theta_diff_this_bin, theta_low, theta_upp, theta_low, theta_upp);
-        double variance_phi = calculateCovariance(phi_diff_this_bin, phi_diff_this_bin, phi_low, phi_upp, phi_low, phi_upp);
-	double covariance_P_phi = calculateCovariance(p_diff_this_bin, phi_diff_this_bin, p_low, p_upp, phi_low, phi_upp);
-	double covariance_P_theta = calculateCovariance(p_diff_this_bin, theta_diff_this_bin, p_low, p_upp, theta_low, theta_upp);
-	double covariance_theta_phi = calculateCovariance(phi_diff_this_bin, theta_diff_this_bin, phi_low, phi_upp, theta_low, theta_upp);
-
-	//Get the number of entries in each bin
-	int N_entries = p_diff_binned[pBin][thetaBin][phiBin].size();
+	//Get variances and covariances of the three kinematic variables: P, theta, and phi
+	std::tie(variance_P, N_good_events) = calculateCovariance("p", "p", p_diff_this_bin, theta_diff_this_bin, phi_diff_this_bin, p_low, p_upp, theta_low, theta_upp, phi_low, phi_upp);
+	std::tie(variance_theta, N_good_events) = calculateCovariance("theta", "theta", p_diff_this_bin, theta_diff_this_bin, phi_diff_this_bin, p_low, p_upp, theta_low, theta_upp, phi_low, phi_upp);
+	std::tie(variance_phi, N_good_events) = calculateCovariance("phi", "phi", p_diff_this_bin, theta_diff_this_bin, phi_diff_this_bin, p_low, p_upp, theta_low, theta_upp, phi_low, phi_upp);
+	std::tie(covariance_P_phi, N_good_events) = calculateCovariance("p", "phi", p_diff_this_bin, theta_diff_this_bin, phi_diff_this_bin, p_low, p_upp, theta_low, theta_upp, phi_low, phi_upp);
+	std::tie(covariance_P_theta, N_good_events) = calculateCovariance("p", "theta", p_diff_this_bin, theta_diff_this_bin, phi_diff_this_bin, p_low, p_upp, theta_low, theta_upp, phi_low, phi_upp);
+	std::tie(covariance_theta_phi, N_good_events) = calculateCovariance("phi", "theta", p_diff_this_bin, theta_diff_this_bin, phi_diff_this_bin, p_low, p_upp, theta_low, theta_upp, phi_low, phi_upp);
 	
+	//Get the number of entries in each bin
+	N_entries = p_diff_binned[pBin][thetaBin][phiBin].size();
+	InfoFile << "N_good_events = " << N_good_events << std::endl;
 	//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~Save covariance matrix elements in C_tree and TH3's~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~//
 	//Get bin centers
-        double current_P_bin_center = (P_bin_high + P_bin_low) / 2;  
-	double current_theta_bin_center = (theta_bin_high + theta_bin_low) / 2;
-	double current_phi_bin_center = (phi_bin_high + phi_bin_low) / 2;   
+        current_P_bin_center = (P_bin_high + P_bin_low) / 2;  
+	current_theta_bin_center = (theta_bin_high + theta_bin_low) / 2;
+	current_phi_bin_center = (phi_bin_high + phi_bin_low) / 2;   
 
 	//Fill the tree with this bin's covariance values
 	P = current_P_bin_center;
@@ -448,7 +564,8 @@ int covMatrix_extraction()
 	C_P_phi = covariance_P_phi;
 	C_P_theta = covariance_P_theta;
 	C_theta_phi = covariance_theta_phi;
-	event_count = N_entries;
+	//event_count = N_entries;
+	event_count = N_good_events;
 	C_tree->Fill();
 	
 	//Fill TH3's by setting the bin content of each bin to be equal to the covariance value
@@ -458,11 +575,13 @@ int covMatrix_extraction()
 	C_P_phi_hist->Fill(current_P_bin_center, current_theta_bin_center, current_phi_bin_center, covariance_P_phi);
 	C_P_theta_hist->Fill(current_P_bin_center, current_theta_bin_center, current_phi_bin_center, covariance_P_theta);
 	C_theta_phi_hist->Fill(current_P_bin_center, current_theta_bin_center, current_phi_bin_center, covariance_theta_phi);
-	entries_hist->Fill(current_P_bin_center, current_theta_bin_center, current_phi_bin_center, N_entries);
+	entries_hist->Fill(current_P_bin_center, current_theta_bin_center, current_phi_bin_center, N_good_events);
 	//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~//
+	
       }
     }
-  }  
+  } 
+  
   // Save the TH3's to the ROOT file
   C_P_hist->Write();
   C_theta_hist->Write();
@@ -477,6 +596,7 @@ int covMatrix_extraction()
 
   // Close the ROOT file
   C_file->Close();
+  
   return 0;
 }
 
@@ -547,20 +667,7 @@ void read_Hipo(char inputFile[256], int part_charge, float part_mass, std::vecto
 	float rec_theta_deg = rec_theta_rad*180/TMath::Pi();
 	float rec_phi_rad = rec.Phi();
 	float rec_phi_deg = rec_phi_rad*180/TMath::Pi();
-	/*
-	//float abs_dist_deg;
-	//float rec_phi_modified_deg = rec_phi_deg;
-	//float abs_dist_rad;
-        //float rec_phi_modified_rad = rec_phi_rad;
-	//If phi>180, it will start from -180.To account for this, any phi>180 is modified to continue counting 
-	//up from 180. So if the reconstructed phi is -179, the following lines will convert is to phi=181.
-	if (rec_phi_deg < -TMath::Pi()/2) {
-	  abs_dist_deg = TMath::Abs(180 - TMath::Abs(rec_phi_deg));
-	  rec_phi_modified_deg = 180 + abs_dist_deg;
-	  abs_dist_rad = TMath::Abs(TMath::Pi() - TMath::Abs(rec_phi_rad));
-          rec_phi_modified_rad = TMath::Pi() + abs_dist_rad;
-	}
-	*/
+
 	float mc_theta_rad = mc.Theta();
 	float mc_theta_deg = mc_theta_rad*180/TMath::Pi();
 	float mc_phi_rad = mc.Phi();
