@@ -64,8 +64,8 @@ int test_InvMass(const int max_events=10000, const float bg_fraction=0.1)
         kin->Add_InvMass_Constraint(constraint_idx, invmass);
         kin->DoFitting(100);
 
-        test.fill_MissingMass(kin, parts_gen, parts_sme, weight, is_background);
-        test.fill_InvariantMass(kin, parts_gen, parts_sme, constraint_idx, weight);
+        //test.fill_MissingMass(kin, parts_gen, parts_sme, weight, is_background);
+        //test.fill_InvariantMass(kin, parts_gen, parts_sme, constraint_idx, weight, is_background);
     }
 
     test.plot();
