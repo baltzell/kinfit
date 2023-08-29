@@ -72,8 +72,6 @@ public:
     std::vector<TH1 *> _h_smeres;
     std::vector<TH1 *> _h_fitgen;
 
-    std::vector<double> pull_vals;
-    double *conf_lev;
 
     KinFitTest(TString name, std::vector<TString> parts, TLorentzVector W, int missing = 0, float missmass = 0, float invmass = 0)
         : _name(name),
@@ -178,17 +176,19 @@ public:
 
         _h_chi->Fill(kin->GetChi2() / kin->GetNDF());
 
-        // std::cout<<kin->GetConfidenceLevel()<<"\n";
-
         if (!background)
             _h_lik_Signal->Fill(kin->GetConfidenceLevel());
         else
             _h_lik_BG->Fill(kin->GetConfidenceLevel());
     }
 
-    //void fill_InvariantMass(KinFitter *kin, std::vector<TLorentzVector> parts_gen, std::vector<TLorentzVector> parts_sme, std::vector<int> indices_part, double weight, bool is_background)
-    std::tuple<std::vector<double>, double> fill_InvariantMass(KinFitter *kin, std::vector<TLorentzVector> parts_gen, std::vector<TLorentzVector> parts_sme, std::vector<int> indices_part, double weight, bool is_background)
+    void fill_InvariantMass(KinFitter *kin, std::vector<TLorentzVector> parts_gen, std::vector<TLorentzVector> parts_sme, std::vector<int> indices_part, double weight, bool is_background)
+    //std::tuple<std::vector<std::vector<double>>, double> fill_InvariantMass(KinFitter *kin, std::vector<TLorentzVector> parts_gen, std::vector<TLorentzVector> parts_sme, std::vector<int> indices_part, double weight, bool is_background)
     {
+        int parts_size = _parts.size();                                                                                                                                                                                                 
+        int kines_size = KINES.size();
+        //std::vector<std::vector<double>> pull_vals(parts_size, std::vector<double>(kines_size));
+
         std::vector<TLorentzVector> parts_fit = kin->GetFitted4Vectors();
 
         TLorentzVector invariant_gen;
@@ -197,21 +197,22 @@ public:
         invariant_sme.SetXYZT(0, 0, 0, 0);
         TLorentzVector invariant_fit;
         invariant_fit.SetXYZT(0, 0, 0, 0);
-
+	
         if (kin->HasConverged())
         {
-	  //std::cout << kin->GetPulls()[0] << std::endl;
             for (int ipart = 0; ipart < indices_part.size(); ipart++)
             {
                 invariant_gen += parts_gen[ipart];
                 invariant_sme += parts_sme[ipart];
                 invariant_fit += parts_fit[ipart];
 
-                for (int jkine = 0; jkine < KINES.size() && kin->GetConfidenceLevel() > 0.01; jkine++)
+                for (int jkine = 0; jkine < KINES.size(); jkine++)
                 {
+		  if (kin->GetConfidenceLevel() > 0.01)
+		    {
                     _h_pulls[ipart * KINES.size() + jkine]->Fill(kin->GetPulls()[ipart * KINES.size() + jkine]);
-		    pull_vals.push_back(kin->GetPulls()[ipart * KINES.size() + jkine]);
-		    //std::cout << kin->GetPulls()[ipart * KINES.size() + jkine] << std::endl;
+		    }
+		  //pull_vals[ipart][jkine] = kin->GetPulls()[ipart * KINES.size() + jkine];
                 }
                 _h_fitres[ipart * 3 + 0]->Fill(parts_fit[ipart].Vect().Mag() - parts_sme[ipart].Vect().Mag());
                 _h_fitres[ipart * 3 + 1]->Fill(parts_fit[ipart].Theta() - parts_sme[ipart].Theta());
@@ -225,22 +226,20 @@ public:
                 _h_fitgen[ipart * 3 + 1]->Fill(parts_gen[ipart].Theta() - parts_fit[ipart].Theta());
                 _h_fitgen[ipart * 3 + 2]->Fill(parts_gen[ipart].Phi() - parts_fit[ipart].Phi());
             }
-
             _h_inv_gen->Fill(invariant_gen.M(), weight);
             _h_inv_sme->Fill(invariant_sme.M(), weight);
             _h_inv_fit->Fill(invariant_fit.M(), weight);
 
             _h_chi->Fill(kin->GetChi2() / kin->GetNDF());
 
-	    //conf_lev->push_back(kin->GetConfidenceLevel());
             if (!is_background)
                 _h_lik_Signal->Fill(kin->GetConfidenceLevel());
             else
                 _h_lik_BG->Fill(kin->GetConfidenceLevel());
         }
 
-	//std::cout << pull_vals.size() << std::endl;
-	return std::make_tuple(pull_vals, kin->GetConfidenceLevel());
+	//return std::make_tuple(pull_vals, kin->GetConfidenceLevel());
+	return;
     }
 
     void plot()
