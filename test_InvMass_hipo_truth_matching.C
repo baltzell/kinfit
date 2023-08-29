@@ -120,6 +120,7 @@ int test_InvMass_hipo_truth_matching()
     const std::vector<TString> parts = {"#pi^{+}", "#pi^{-}"};
     const std::vector<double> masses = {0.139, 0.139};
     const std::vector<int> required_pids = {211, -211};
+    const std::vector<TString> KINES = {"P", "#theta", "#phi"};
 
     KinFitTest test("InvMass_hipo", parts, W, 0, 0, 0.77);
 
@@ -137,7 +138,7 @@ int test_InvMass_hipo_truth_matching()
 
     // If dir_path is a directory, loop through all files within it, with a max number of file limit
     int in_file_count = 0;
-    int max_number_file = 50;
+    int max_number_file = 1;
 
     if (dr)
     {
@@ -318,8 +319,17 @@ void read_Hipo(char inputFile[256], std::vector<int> required_pids, std::vector<
             if (kin->HasConverged())
             {
 	      std::vector<TLorentzVector> parts_fit = kin->GetFitted4Vectors();
+	      double conf_lev = kin->GetConfidenceLevel();
+	      for (int ipart = 0; ipart < parts.size(); ipart++)
+		{
+		  for (int jkine = 0; jkine < KINES.size(); jkine++)
+		    {
+		      pull_vals[ipart][jkine] = kin->GetPulls()[ipart * KINES.size() + jkine];
+		    }
+		}
 	      //std::cout << "parts_fit[0].P(): " << parts_fit[0].P() << std::endl;
-	        std::tie(pull_vals, conf_lev) = test.fill_InvariantMass(kin, mc_vec_list, vec_list, constraint_idx, weight, is_background);
+	        //std::tie(pull_vals, conf_lev) = test.fill_InvariantMass(kin, mc_vec_list, vec_list, constraint_idx, weight, is_background);
+		test.fill_InvariantMass(kin, mc_vec_list, vec_list, constraint_idx, weight, is_background);
 		fitted_events++;
 
 		kinFitData.rec_p1 = vec_list[0].P();
