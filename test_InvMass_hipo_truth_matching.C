@@ -18,7 +18,7 @@
 
 // Create Struct for storing kinematic fitter info 
 struct kinFitInfoStruct {
-  double rec_p1, rec_p2, rec_theta1, rec_theta2, rec_phi1, rec_phi2, mc_p1, mc_p2, mc_theta1, mc_theta2, mc_phi1, mc_phi2, fit_p1, fit_p2, fit_theta1, fit_theta2, fit_phi1, fit_phi2, pull_p1, pull_p2, pull_theta1, pull_theta2, pull_phi1, pull_phi2, confidence_level, cov_p1, cov_p2, cov_theta1, cov_theta2, cov_phi1, cov_phi2, cov_p_theta1, cov_p_theta2, cov_p_phi1, cov_p_phi2, cov_phi_theta1, cov_phi_theta2;
+  double rec_p1, rec_p2, rec_theta1, rec_theta2, rec_phi1, rec_phi2, mc_p1, mc_p2, mc_theta1, mc_theta2, mc_phi1, mc_phi2, fit_p1, fit_p2, fit_theta1, fit_theta2, fit_phi1, fit_phi2, pull_p1, pull_p2, pull_theta1, pull_theta2, pull_phi1, pull_phi2, confidence_level, cov_p1, cov_p2, cov_theta1, cov_theta2, cov_phi1, cov_phi2, cov_p_theta1, cov_p_theta2, cov_p_phi1, cov_p_phi2, cov_phi_theta1, cov_phi_theta2, convergence_status;
 };
 
 // Create Struct for storing all MC events info
@@ -102,6 +102,7 @@ int test_InvMass_hipo_truth_matching()
     kinfitTree->Branch("cov_p_phi2", &kinFitData.cov_p_phi2, "cov_p_phi2/D");
     kinfitTree->Branch("cov_phi_theta1", &kinFitData.cov_phi_theta1, "cov_phi_theta1/D");
     kinfitTree->Branch("cov_phi_theta2", &kinFitData.cov_phi_theta2, "cov_phi_theta2/D");
+	kinfitTree->Branch("convergence_status", &kinFitData.convergence_status, "convergence_status/D");
     
     // Create a TTree to store the generated particle information
     TTree* allGenTree = new TTree("allGenTree", "allGenTree");
@@ -138,7 +139,7 @@ int test_InvMass_hipo_truth_matching()
 
     // If dir_path is a directory, loop through all files within it, with a max number of file limit
     int in_file_count = 0;
-    int max_number_file = 1;
+    int max_number_file = 50;
 
     if (dr)
     {
@@ -369,6 +370,7 @@ void read_Hipo(char inputFile[256], std::vector<int> required_pids, std::vector<
 		kinFitData.cov_p_phi2 = kin_parts[1].GetCovMatrix()[0][2];
 		kinFitData.cov_phi_theta1 = kin_parts[0].GetCovMatrix()[1][2];
 		kinFitData.cov_phi_theta2 = kin_parts[1].GetCovMatrix()[1][2];
+		kinFitData.convergence_status = kin->GetConvergenceStatus(); 
 		kinfitTree->Fill();
 		 
             }
@@ -411,6 +413,7 @@ void read_Hipo(char inputFile[256], std::vector<int> required_pids, std::vector<
                 kinFitData.cov_p_phi2 = kin_parts[1].GetCovMatrix()[0][2];
                 kinFitData.cov_phi_theta1 = kin_parts[0].GetCovMatrix()[1][2];
 		kinFitData.cov_phi_theta2 = kin_parts[1].GetCovMatrix()[1][2];
+		kinFitData.convergence_status = kin->GetConvergenceStatus();
 	        kinfitTree->Fill();
 	    }
 	    

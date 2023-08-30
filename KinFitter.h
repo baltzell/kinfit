@@ -25,6 +25,7 @@ public:
     double GetChi2() { return _chi2; }
     double GetNDF() { return _ndf_tot; }
     double HasConverged() { return _converged; }
+	int GetConvergenceStatus() { return _convergence_status; }
     bool IsCovarianceInvertible() { return _is_covariance_invertible; }
     TVectorD GetPulls() { return _pulls; }
     std::vector<TLorentzVector> GetFitted4Vectors() { return _Ps_y; }
@@ -38,6 +39,7 @@ private:
     int _ndf_tot = 0;                     // Total number of degrees of freedom of the fit. This number is updated for each constraint added to the fit
     bool _is_covariance_invertible = true; // Check if the covariance matrix is invertible, if not, the fit is skipped.
     bool _converged = false; //Need of a status indication, bool for now, might need some more complex one
+	int _convergence_status = 0; //Flag to track the convergence status of the fitter: 0-no converged; 1-Stop condition: small relative chi2 difference; 2-Stop condition: reversal of Chi2
 
     TVectorD _eta;         // Measured vector Eq.1
     TVectorD _sigma2_etas; // Measured errors for each measured quantities Eq.19
@@ -199,14 +201,17 @@ public:
             if (n_iter_reversed > 1 && n_iter > 0)
             {
                 UndoFit();
+				_convergence_status = 2;
                 break;
             }
 
             // the relative change in the chi2 is tiny,
             // so just stop iterating and keep the current iteration:
             if (std::abs(_chi2 - chi2_previous) / chi2_previous < 0.001 && n_iter > 0)
-                break;
-
+            {
+				_convergence_status = 1;
+				break;
+			}
             n_iter++;
         }
 
