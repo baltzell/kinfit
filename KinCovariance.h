@@ -81,7 +81,7 @@ public:
     }
 
     // Methods to get the error of the covariance matrix
-    TMatrixD Interpolate(int sector, double p, double theta, double phi)
+    TMatrixD Interpolate_Error(int sector, double p, double theta, double phi)
     {
         TMatrixD Cov_Err_Matrix(3, 3);
 
