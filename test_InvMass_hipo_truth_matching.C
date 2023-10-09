@@ -144,11 +144,11 @@ int test_InvMass_hipo_truth_matching()
   KinFitTest test("InvMass_hipo", parts, W, 0, 0, 0.77);
 
   //---------------Specify input file or directory path---------------//
-  // char dir_path[256] = "../KinematicFitter/Input_files_for_test//New_simu_for_kinfit.hipo"; // New_version_dipion_kinfit.hipo";
+  char dir_path[256] = "/volatile/clas12/reedtg/clas12_kinfitter/cov_matrix/pim-sec2-100mil_events_6-15-23/cooked/out_pim-sec2-100mil_events_6-15-23-9606.rec.hipo";
   // char dir_path[256] = "/volatile/clas12/reedtg/clas12_kinfitter/rho_to_pippim_gen_events_7-20-23/rho_to_pippim/cooked/";
   // char dir_path[256] = "/volatile/clas12/reedtg/clas12_kinfitter/rho_to_pippim_gen_events_7-20-23/rho_to_pippim/cooked/out_rho_to_pippim130.rec.hipo";
   // char dir_path[256] = "/volatile/clas12/reedtg/clas12_kinfitter/rho_to_pippim_gen_events_8-23-23/rho_to_pippim/cooked/";
-  char dir_path[256] = "/volatile/clas12/reedtg/clas12_kinfitter/rho_to_pippim_gen_events/rho_to_pippim_8-26-23/cooked/";
+  //char dir_path[256] = "/volatile/clas12/reedtg/clas12_kinfitter/rho_to_pippim_gen_events/rho_to_pippim_8-26-23/cooked/";
   //------------------------------------------------------------------//
 
   DIR *dr;
@@ -243,11 +243,16 @@ void read_Hipo(char inputFile[256], std::vector<int> required_pids, std::vector<
   // KinCovariance Covariance_PiPlus("../KinematicFitter/pip_minEventCut_covariances.root");  //("pip_covariances.root");//
   // KinCovariance Covariance_PiMinus("../KinematicFitter/pim_minEventCut_covariances.root"); //("pip_covariances.root");//
 
-  KinCovariance Covariance_PiPlus("/work/clas12/reedtg/clas12_kinematic_fitter/dev_trevor/pip_minEventCut_covariances.root");  //("pip_covariances.root");//
-  KinCovariance Covariance_PiMinus("/work/clas12/reedtg/clas12_kinematic_fitter/dev_trevor/pim_minEventCut_covariances.root"); //("pip_covariances.root");//
+  //TString input_pip = "/work/clas12/reedtg/clas12_kinematic_fitter/dev_trevor/pip_minEventCut_covariances.root";
+  //TString input_pim = "/work/clas12/reedtg/clas12_kinematic_fitter/dev_trevor/pim_minEventCut_covariances.root";
+  TString input_pip = "/work/clas12/reedtg/clas12_kinematic_fitter/dev_trevor/KinematicFitter/pip_covariances_9-18-23.root";
+  TString input_pim = "/work/clas12/reedtg/clas12_kinematic_fitter/dev_trevor/KinematicFitter/pim_covariances_9-19-23.root";
 
-  KinMomentumCorrections MomCorr_PiPlus("/work/clas12/reedtg/clas12_kinematic_fitter/dev_trevor/pip_minEventCut_covariances.root");
-  KinMomentumCorrections MomCorr_PiMinus("/work/clas12/reedtg/clas12_kinematic_fitter/dev_trevor/pim_minEventCut_covariances.root");
+  KinCovariance Covariance_PiPlus(input_pip);
+  KinCovariance Covariance_PiMinus(input_pim);
+
+  KinMomentumCorrections MomCorr_PiPlus(input_pip);
+  KinMomentumCorrections MomCorr_PiMinus(input_pim);
 
 
   double limit_down_P = 1.2;    // 2.0;    // 5.0;//
