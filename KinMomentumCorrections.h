@@ -36,9 +36,14 @@ public:
         double offset_theta = _theta_offset_hist.Interpolate(P_in_vector, Theta_in_vector, Phi_in_vector);
         double offset_phi = _phi_offset_hist.Interpolate(P_in_vector, Theta_in_vector, Phi_in_vector);
 
-        in_vector->SetPhi(phi - offset_phi);
-        in_vector->SetTheta(Theta_in_vector - offset_theta);
+		std::cout<<"offsets "<<offset_P<<" "<<offset_theta<<" "<<offset_phi<<std::endl;
+
+        in_vector->SetPhi( (phi - offset_phi)*3.141592/180. );
+        in_vector->SetTheta( (Theta_in_vector - offset_theta)*3.141592/180. );
         in_vector->SetRho(P_in_vector - offset_P);
+
+		std::cout<<"after offsets "<<P_in_vector - offset_P<<" "<<Theta_in_vector -offset_theta<<" "<<phi-offset_phi<<std::endl;
+		std::cout<<"after offsets 2 "<<in_vector->P()<<" "<<in_vector->Theta()*180./3.141592<<" "<<in_vector->Phi()*180./3.141592<<std::endl;
 
         return;
     }

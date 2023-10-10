@@ -51,6 +51,8 @@ public:
         double Temp_Phi_in_vector = (phi < 0. && sector > 1) ? phi + 360 : phi;
         double Phi_in_vector = (sector == 1) ? Temp_Phi_in_vector + 60 : Temp_Phi_in_vector - (sector - 2) * 60.;
 
+		//std::cout<<"In cov mat"<<std::endl;
+		//std::cout<<"P "<<P_in_vector<<" Theta "<<Theta_in_vector<<" Phi "<<Phi_in_vector<<std::endl;
         // Diagonal terms
         // Momentum resolution
         Cov_Matrix[0][0] = _C_P_hist.Interpolate(P_in_vector, Theta_in_vector, Phi_in_vector);
@@ -83,14 +85,18 @@ public:
     // Methods to get the error of the covariance matrix
     TMatrixD Interpolate_Error(int sector, double p, double theta, double phi)
     {
-        TMatrixD Cov_Err_Matrix(3, 3);
-
+    	//std::cout<<"In err. cov mat"<<std::endl;
+		TMatrixD Cov_Err_Matrix(3, 3);
+		//return Cov_Err_Matrix;
         double P_in_vector = p;
         double Theta_in_vector = theta;
 
         // So far studies are done for sector 2, requiering to do some arythmetics on phi using the sector number
         double Temp_Phi_in_vector = (phi < 0. && sector > 1) ? phi + 360 : phi;
         double Phi_in_vector = (sector == 1) ? Temp_Phi_in_vector + 60 : Temp_Phi_in_vector - (sector - 2) * 60.;
+
+		//std::cout<<"In err. cov mat"<<std::endl;
+		 //std::cout<<"P "<<P_in_vector<<" Theta "<<Theta_in_vector<<" Phi "<<Phi_in_vector<<std::endl;
 
         // Diagonal terms
         // Momentum resolution
