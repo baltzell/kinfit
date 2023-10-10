@@ -319,8 +319,8 @@ void read_Hipo(char inputFile[256], std::vector<int> required_pids, std::vector<
 						{
 
 								// Correct the reconstructed momenta to suppress offsets with Gen momenta
-								std::cout<<"PID "<<pid_list[ipart]<<" "<<ipart<<" "<<pid_list.size()<<std::endl;
-								std::cout<<"Before "<<vec_list[ipart].P()<<" "<<vec_list[ipart].Theta()*180./3.141592<<" "<<vec_list[ipart].Phi()*180./3.141592<<std::endl;
+								//std::cout<<"PID "<<pid_list[ipart]<<" "<<ipart<<" "<<pid_list.size()<<std::endl;
+								//std::cout<<"Before "<<vec_list[ipart].P()<<" "<<vec_list[ipart].Theta()*180./3.141592<<" "<<vec_list[ipart].Phi()*180./3.141592<<std::endl;
 								
 								/*if(pass_limit_cov_matrix(sector_list[ipart], vec_list[ipart], limit_up_P, limit_down_P, limit_up_Theta, limit_down_Theta, limit_up_Phi, limit_down_Phi)){
 										if(pid_list[ipart] == 211)
@@ -330,7 +330,7 @@ void read_Hipo(char inputFile[256], std::vector<int> required_pids, std::vector<
 							
 								}*/
 
-								std::cout<<"After "<<vec_list[ipart].P()<<" "<<vec_list[ipart].Theta()*180./3.141592<<" "<<vec_list[ipart].Phi()*180./3.141592<<std::endl;
+								//std::cout<<"After "<<vec_list[ipart].P()<<" "<<vec_list[ipart].Theta()*180./3.141592<<" "<<vec_list[ipart].Phi()*180./3.141592<<std::endl;
 
 								if (!pass_limit_cov_matrix(sector_list[ipart], vec_list[ipart], limit_up_P, limit_down_P, limit_up_Theta, limit_down_Theta, limit_up_Phi, limit_down_Phi))
 								{
@@ -345,10 +345,10 @@ void read_Hipo(char inputFile[256], std::vector<int> required_pids, std::vector<
 								KinCovariance Current_Covmatrix = (pid_list[ipart] == 211) ? Covariance_PiPlus : Covariance_PiMinus; // attributes PiMinus Cov matrix to anything but pi+
 
 								// Correct the reconstructed momenta to suppress offsets with Gen momenta
-								        if(pid_list[ipart] == 211){MomCorr_PiPlus.Correct_4_Vector(sector_list[ipart], &vec_list[ipart]);}
-										if(pid_list[ipart] == -211){MomCorr_PiMinus.Correct_4_Vector(sector_list[ipart], &vec_list[ipart]);}
+								//        if(pid_list[ipart] == 211){MomCorr_PiPlus.Correct_4_Vector(sector_list[ipart], &vec_list[ipart]);}
+								//		if(pid_list[ipart] == -211){MomCorr_PiMinus.Correct_4_Vector(sector_list[ipart], &vec_list[ipart]);}
 										  
-								std::cout<<"PID "<<pid_list[ipart]<<std::endl;
+								//std::cout<<"PID "<<pid_list[ipart]<<std::endl;
 								kin_parts.push_back(KinParticle(vec_list[ipart], 0.139, Current_Covmatrix, sector_list[ipart]));
 								// std::cout << "Current_Covmatrix: " << kin_parts[ipart].GetCovMatrix()[1][1] << std::endl;
 								// kin_parts[ipart].GetCovMatrix().Print();
@@ -360,7 +360,7 @@ void read_Hipo(char inputFile[256], std::vector<int> required_pids, std::vector<
 								continue;
 						}
 
-std::cout<<"here"<<std::endl;
+//std::cout<<"here"<<std::endl;
 						auto kin = new KinFitter({KinParticle(target), KinParticle(beam)}, kin_parts);
 						kin->Add_InvMass_Constraint(constraint_idx, 0.77);
 						kin->DoFitting(100);
