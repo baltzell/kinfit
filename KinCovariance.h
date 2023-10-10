@@ -76,7 +76,7 @@ public:
         Cov_Matrix[1][2] = _C_theta_phi_hist.Interpolate(P_in_vector, Theta_in_vector, Phi_in_vector);
         Cov_Matrix[2][1] = Cov_Matrix[1][2];
 
-        SetEntries(_entries_hist.GetBinContent(_entries_hist.GetBin(_entries_hist.GetXaxis().FindBin(P_in_vector), _entries_hist.GetYaxis().FindBin(Theta_in_vector), _entries_hist.GetZaxis().FindBin(Phi_in_vector))));
+        SetEntries(_entries_hist.GetBinContent(_entries_hist.GetBin(_entries_hist.GetXaxis()->FindBin(P_in_vector), _entries_hist.GetYaxis()->FindBin(Theta_in_vector), _entries_hist.GetZaxis()->FindBin(Phi_in_vector))));
 
         return Cov_Matrix;
     }
@@ -177,7 +177,7 @@ public:
     }
 
     int GetEntries(){
-        return _n_entries
+        return _n_entries;
     }
 
     void SetEntries(int in_n_entries){
