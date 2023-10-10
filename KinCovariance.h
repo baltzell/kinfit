@@ -37,6 +37,8 @@ public:
         _C_P_theta_err_hist = *(TH3D *)in_File->Get("C_P_theta_err_hist");
         _C_P_phi_err_hist = *(TH3D *)in_File->Get("C_P_phi_err_hist");
         _C_theta_phi_err_hist = *(TH3D *)in_File->Get("C_theta_phi_err_hist");
+
+        _entries_hist = *(TH3D *)in_File->Get("entries_hist");
     }
 
     // Interpolate the covariance matrix to the momenta (in GeV) and angles (in degrees) provided as arguments
@@ -73,6 +75,8 @@ public:
         // Phi/Theta covariance
         Cov_Matrix[1][2] = _C_theta_phi_hist.Interpolate(P_in_vector, Theta_in_vector, Phi_in_vector);
         Cov_Matrix[2][1] = Cov_Matrix[1][2];
+
+        SetEntries(_entries_hist.GetBinContent(_entries_hist.GetBin(_entries_hist.GetXaxis().FindBin(P_in_vector), _entries_hist.GetYaxis().FindBin(Theta_in_vector), _entries_hist.GetZaxis().FindBin(Phi_in_vector))));
 
         return Cov_Matrix;
     }
@@ -172,6 +176,14 @@ public:
                 (hist.GetBinContent(obx, oby, obz) != 0.0));
     }
 
+    int GetEntries(){
+        return _n_entries
+    }
+
+    void SetEntries(int in_n_entries){
+        _n_entries = in_n_entries;
+    }
+
 private:
     TH3D _C_P_hist;
     TH3D _C_theta_hist;
@@ -186,6 +198,9 @@ private:
     TH3D _C_P_theta_err_hist;
     TH3D _C_P_phi_err_hist;
     TH3D _C_theta_phi_err_hist;
+
+    TH3D _entries_hist;
+    int _n_entries;
 };
 
 #endif

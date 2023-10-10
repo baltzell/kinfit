@@ -477,7 +477,7 @@ void read_Rec_Part_Bank(hipo::bank PartBank, hipo::bank MCMatchBank, hipo::bank 
 	TLorentzVector piplus_vec;
 	TLorentzVector piminus_vec;
 
-	for (int index_particle=0; i<PartBank.getRows(); i++)
+	for (int index_particle=0; index_particle<PartBank.getRows(); index_particle++)
 	{
 		int status_pi = PartBank.getInt("status", index_particle);
 		int pid_pi = PartBank.getInt("pid", index_particle);
@@ -570,5 +570,5 @@ bool pass_limit_cov_matrix(int sector, TLorentzVector vector, double limit_up_P,
 
 int main()
 {
-	return test_InvMass_hipo_truth_matching();
+	return test_InvMass_hipo_Rec();
 }

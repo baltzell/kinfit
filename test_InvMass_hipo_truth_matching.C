@@ -21,7 +21,7 @@ struct kinFitInfoStruct
 		double rec_p1, rec_p2, rec_theta1, rec_theta2, rec_phi1, rec_phi2, mc_p1, mc_p2, mc_theta1, mc_theta2, mc_phi1, mc_phi2;
 		double fit_p1, fit_p2, fit_theta1, fit_theta2, fit_phi1, fit_phi2;
 		double pull_p1, pull_p2, pull_theta1, pull_theta2, pull_phi1, pull_phi2;
-		double confidence_level, cov_p1, cov_p2, cov_theta1, cov_theta2, cov_phi1, cov_phi2, cov_p_theta1, cov_p_theta2, cov_p_phi1, cov_p_phi2, cov_phi_theta1, cov_phi_theta2, convergence_status;
+		double confidence_level, cov_p1, cov_p2, cov_theta1, cov_theta2, cov_phi1, cov_phi2, cov_p_theta1, cov_p_theta2, cov_p_phi1, cov_p_phi2, cov_phi_theta1, cov_phi_theta2, convergence_status, n_entries_1, n_entries_2;
 		double cov_err_p1, cov_err_p2, cov_err_theta1, cov_err_theta2, cov_err_phi1, cov_err_phi2, cov_err_p_theta1, cov_err_p_theta2, cov_err_p_phi1, cov_err_p_phi2, cov_err_phi_theta1, cov_err_phi_theta2;
 };
 
@@ -96,6 +96,8 @@ int test_InvMass_hipo_truth_matching()
 		kinfitTree->Branch("pull_phi1", &kinFitData.pull_phi1, "pull_phi1/D");
 		kinfitTree->Branch("pull_phi2", &kinFitData.pull_phi2, "pull_phi2/D");
 		kinfitTree->Branch("confidence_level", &kinFitData.confidence_level, "confidence_level/D");
+    kinfitTree->Branch("n_entries_1", &kinFitData.n_entries_1, "n_entries_1/D");
+    kinfitTree->Branch("n_entries_2", &kinFitData.n_entries_2, "n_entries_2/D");
 		kinfitTree->Branch("cov_p1", &kinFitData.cov_p1, "cov_p1/D");
 		kinfitTree->Branch("cov_p2", &kinFitData.cov_p2, "cov_p2/D");
 		kinfitTree->Branch("cov_theta1", &kinFitData.cov_theta1, "cov_theta1/D");
@@ -448,6 +450,8 @@ std::cout<<"here"<<std::endl;
 						kinFitData.cov_phi_theta2 = kin_parts[1].GetCovMatrix()[1][2];
 
 						kinFitData.convergence_status = kin->GetConvergenceStatus();
+            kinFitData.n_entries_1 = kin_parts[0].GetEntries();
+            kinFitData.n_entries_2 = kin_parts[1].GetEntries();
 
 						kinFitData.cov_err_p1 = kin_parts[0].GetErrCovMatrix()[0][0];
 						kinFitData.cov_err_p2 = kin_parts[1].GetErrCovMatrix()[0][0];
