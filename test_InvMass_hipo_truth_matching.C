@@ -149,8 +149,8 @@ int test_InvMass_hipo_truth_matching()
 		//char dir_path[256] = "/volatile/clas12/reedtg/clas12_kinfitter/cov_matrix/pim-sec2-100mil_events_6-15-23/cooked/";
 		//char dir_path[256] = "/volatile/clas12/reedtg/clas12_kinfitter/rho_to_pippim_gen_events_7-20-23/rho_to_pippim/cooked/out_rho_to_pippim130.rec.hipo";
 		// char dir_path[256] = "/volatile/clas12/reedtg/clas12_kinfitter/rho_to_pippim_gen_events_7-20-23/rho_to_pippim/cooked/out_rho_to_pippim130.rec.hipo";
-		char dir_path[256] = "/volatile/clas12/reedtg/clas12_kinfitter/rho_to_pippim_gen_events_8-23-23/rho_to_pippim/cooked/";
-		//char dir_path[256] = "/volatile/clas12/reedtg/clas12_kinfitter/rho_to_pippim_gen_events/rho_to_pippim_8-26-23/cooked/";
+		//char dir_path[256] = "/volatile/clas12/reedtg/clas12_kinfitter/rho_to_pippim_gen_events_8-23-23/rho_to_pippim/cooked/";
+		char dir_path[256] = "/volatile/clas12/reedtg/clas12_kinfitter/rho_to_pippim_gen_events/rho_to_pippim_8-26-23/cooked/";
 		//------------------------------------------------------------------//
 
 		DIR *dr;
@@ -247,8 +247,10 @@ void read_Hipo(char inputFile[256], std::vector<int> required_pids, std::vector<
 
 		//TString input_pip = "/work/clas12/reedtg/clas12_kinematic_fitter/dev_trevor/pip_minEventCut_covariances.root";
 		//TString input_pim = "/work/clas12/reedtg/clas12_kinematic_fitter/dev_trevor/pim_minEventCut_covariances.root";
-		TString input_pip = "/work/clas12/reedtg/clas12_kinematic_fitter/dev_trevor/pip_covariances_9-18-23.root";
-		TString input_pim = "/work/clas12/reedtg/clas12_kinematic_fitter/dev_trevor/pim_covariances_9-19-23.root";
+		//TString input_pip = "/work/clas12/reedtg/clas12_kinematic_fitter/dev_trevor/pip_covariances_9-18-23.root";
+		//TString input_pim = "/work/clas12/reedtg/clas12_kinematic_fitter/dev_trevor/pim_covariances_9-19-23.root";
+		TString input_pip = "/work/clas12/reedtg/clas12_kinematic_fitter/updated_4-16-23/kinfit/covMatrix_extraction/pip_covariances_10-12-23.root";
+		TString input_pim = "/work/clas12/reedtg/clas12_kinematic_fitter/updated_4-16-23/kinfit/covMatrix_extraction/pim_covariances_10-11-23.root";
 
 		KinCovariance Covariance_PiPlus(input_pip);
 		KinCovariance Covariance_PiMinus(input_pim);
@@ -345,13 +347,15 @@ void read_Hipo(char inputFile[256], std::vector<int> required_pids, std::vector<
 								KinCovariance Current_Covmatrix = (pid_list[ipart] == 211) ? Covariance_PiPlus : Covariance_PiMinus; // attributes PiMinus Cov matrix to anything but pi+
 
 								// Correct the reconstructed momenta to suppress offsets with Gen momenta
-								//        if(pid_list[ipart] == 211){MomCorr_PiPlus.Correct_4_Vector(sector_list[ipart], &vec_list[ipart]);}
-								//		if(pid_list[ipart] == -211){MomCorr_PiMinus.Correct_4_Vector(sector_list[ipart], &vec_list[ipart]);}
+								//if(pid_list[ipart] == 211){MomCorr_PiPlus.Correct_4_Vector(sector_list[ipart], &vec_list[ipart]);}
+								//if(pid_list[ipart] == -211){MomCorr_PiMinus.Correct_4_Vector(sector_list[ipart], &vec_list[ipart]);}
 										  
 								//std::cout<<"PID "<<pid_list[ipart]<<std::endl;
 								kin_parts.push_back(KinParticle(vec_list[ipart], 0.139, Current_Covmatrix, sector_list[ipart]));
 								// std::cout << "Current_Covmatrix: " << kin_parts[ipart].GetCovMatrix()[1][1] << std::endl;
-								// kin_parts[ipart].GetCovMatrix().Print();
+								std::cout<<std::endl;
+								std::cout<<vec_list[ipart].P()<<" "<<vec_list[ipart].Theta()*180./3.141592<<" "<<vec_list[ipart].Phi()*180./3.141592<<std::endl;
+								kin_parts[ipart].GetCovMatrix().Print();
 						}
 
 						// Skip to the next event if at least one of the particles did not make the kinematic cuts
