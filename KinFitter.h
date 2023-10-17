@@ -160,6 +160,15 @@ public:
         _ndf_tot += in_Cons->GetNconstraints();
     }
 
+    //3C fit: the only purpose of this contraint is testing
+    void Add_3C_Constraint(std::vector<int> index_P_Cons)
+    {
+        KinConstraint_MissingMass *in_Cons = new KinConstraint_3C(index_P_Cons);
+        _Cons.push_back(in_Cons);
+        _nconstraints_tot += in_Cons->GetNconstraints();
+        _ndf_tot += in_Cons->GetNconstraints();
+    }
+
     void DoFitting(const int max_iter = 100)
     {
         // initialize the current chi2 with the largest possible value:
