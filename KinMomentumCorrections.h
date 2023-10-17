@@ -28,8 +28,8 @@ public:
 
         // So far studies are done for sector 2, requiering to do some arythmetics on phi using the sector number
         double phi = in_vector->Phi() * TMath::RadToDeg();
-        double Temp_Phi_in_vector = (phi < 0. && sector > 1) ? phi + 360 : phi;
-        double Phi_in_vector = (sector == 1) ? Temp_Phi_in_vector + 60 : Temp_Phi_in_vector - (sector - 2) * 60.;
+        //double Temp_Phi_in_vector = (phi < 0. && sector > 1) ? phi + 360 : phi;
+        double Phi_in_vector = Rotate_to_sector2(phi);//(sector == 1) ? Temp_Phi_in_vector + 60 : Temp_Phi_in_vector - (sector - 2) * 60.;
 
         // 4-vector offset
         double offset_P = _P_offset_hist.Interpolate(P_in_vector, Theta_in_vector, Phi_in_vector);

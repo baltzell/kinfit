@@ -454,8 +454,8 @@ void read_Hipo(char inputFile[256], std::vector<int> required_pids, std::vector<
 						kinFitData.cov_phi_theta2 = kin_parts[1].GetCovMatrix()[1][2];
 
 						kinFitData.convergence_status = kin->GetConvergenceStatus();
-            kinFitData.n_entries_1 = kin_parts[0].GetEntries();
-            kinFitData.n_entries_2 = kin_parts[1].GetEntries();
+            			kinFitData.n_entries_1 = kin_parts[0].GetEntries();
+            			kinFitData.n_entries_2 = kin_parts[1].GetEntries();
 
 						kinFitData.cov_err_p1 = kin_parts[0].GetErrCovMatrix()[0][0];
 						kinFitData.cov_err_p2 = kin_parts[1].GetErrCovMatrix()[0][0];
@@ -615,8 +615,9 @@ bool pass_limit_cov_matrix(int sector, TLorentzVector vector, double limit_up_P,
 		if (vector.P() < limit_down_P || vector.P() > limit_up_P || vector.Theta() * TMath::RadToDeg() > limit_up_Theta || vector.Theta() * TMath::RadToDeg() < limit_down_Theta)
 				return false;
 
-		double Temp_Phi_in_vector = (vector.Phi() * TMath::RadToDeg() < 0. && sector > 1) ? vector.Phi() * TMath::RadToDeg() + 360 : vector.Phi() * TMath::RadToDeg(); // implement that and edge fiducial cuts
-		double Phi_in_vector = (sector == 1) ? Temp_Phi_in_vector + 60 : Temp_Phi_in_vector - (sector - 2) * 60.;
+		//double Temp_Phi_in_vector = (vector.Phi() * TMath::RadToDeg() < 0. && sector > 1) ? vector.Phi() * TMath::RadToDeg() + 360 : vector.Phi() * TMath::RadToDeg(); // implement that and edge fiducial cuts
+		//double Phi_in_vector = (sector == 1) ? Temp_Phi_in_vector + 60 : Temp_Phi_in_vector - (sector - 2) * 60.;
+		double Phi_in_vector = Rotate_to_sector2(phi);
 
 		if (Phi_in_vector < limit_down_Phi || Phi_in_vector > limit_up_Phi)
 				return false;
