@@ -7,8 +7,25 @@
 
 double Rotate_to_sector2(double phi)
 {
-    double rotated_phi = (phi < -30.) ? phi + 360 : phi;
-    return rotated_phi = (phi > 30.) ? rotated_phi - (60. * ((int)(rotated_phi / 60.) - 1)) : rotated_phi + 60.;
+    
+	 double rotated_phi = phi;
+    if(rotated_phi<0){
+        while(rotated_phi<-30.){
+        rotated_phi+=60.;
+        }
+        rotated_phi+=60.;
+    }
+    else if(rotated_phi>0){
+         while(rotated_phi>30.){
+        rotated_phi-=60.;
+        }
+        rotated_phi+=60.;
+
+    }
+	return rotated_phi;
+	//double rotated_phi = (phi < -30.) ? phi + 360 : phi;
+    //return rotated_phi = (phi > 30.) ? rotated_phi - (60. * ((int)(rotated_phi / 60.) - 1)) : rotated_phi + 60.;
+	//return rotated_phi = (rotated_phi > 30.) ? rotated_phi - (60. * ((int)(rotated_phi / 60.))) : rotated_phi + 60.;
 }
 
 class KinCovariance
@@ -59,27 +76,29 @@ public:
         // double Temp_Phi_in_vector = (phi < 0. && sector > 1) ? phi + 360 : phi;
         double Phi_in_vector = Rotate_to_sector2(phi); //(sector == 1) ? Temp_Phi_in_vector + 60 : Temp_Phi_in_vector - (sector - 2) * 60.;
 
-        std::cout << "In cov mat" << std::endl;
-        std::cout << "P " << P_in_vector << " Theta " << Theta_in_vector << " Phi " << Phi_in_vector << std::endl;
+		double multiplier = 0.25;
+
+        //std::cout << "In cov mat" << std::endl;
+        //std::cout << "P " << P_in_vector << " Theta " << Theta_in_vector << " Phi " << Phi_in_vector << std::endl;
         // Diagonal terms
         // Momentum resolution
-        Cov_Matrix[0][0] = _C_P_hist.Interpolate(P_in_vector, Theta_in_vector, Phi_in_vector);
+        Cov_Matrix[0][0] = multiplier * _C_P_hist.Interpolate(P_in_vector, Theta_in_vector, Phi_in_vector);
         // Theta resolution
-        Cov_Matrix[1][1] = _C_theta_hist.Interpolate(P_in_vector, Theta_in_vector, Phi_in_vector) * (TMath::DegToRad() * TMath::DegToRad());
+        Cov_Matrix[1][1] = multiplier * _C_theta_hist.Interpolate(P_in_vector, Theta_in_vector, Phi_in_vector) * (TMath::DegToRad() * TMath::DegToRad());
         // Phi resolution
-        Cov_Matrix[2][2] = _C_phi_hist.Interpolate(P_in_vector, Theta_in_vector, Phi_in_vector) * (TMath::DegToRad() * TMath::DegToRad());
+        Cov_Matrix[2][2] = multiplier * _C_phi_hist.Interpolate(P_in_vector, Theta_in_vector, Phi_in_vector) * (TMath::DegToRad() * TMath::DegToRad());
 
         // Off Diagonal terms
         // Momentum/Theta covariance
-        Cov_Matrix[0][1] = _C_P_theta_hist.Interpolate(P_in_vector, Theta_in_vector, Phi_in_vector) * (TMath::DegToRad());
+        Cov_Matrix[0][1] = multiplier * _C_P_theta_hist.Interpolate(P_in_vector, Theta_in_vector, Phi_in_vector) * (TMath::DegToRad());
         Cov_Matrix[1][0] = Cov_Matrix[0][1];
 
         // Momentum/Phi covariance
-        Cov_Matrix[0][2] = _C_P_phi_hist.Interpolate(P_in_vector, Theta_in_vector, Phi_in_vector) * (TMath::DegToRad());
+        Cov_Matrix[0][2] = multiplier * _C_P_phi_hist.Interpolate(P_in_vector, Theta_in_vector, Phi_in_vector) * (TMath::DegToRad());
         Cov_Matrix[2][0] = Cov_Matrix[0][2];
 
         // Phi/Theta covariance
-        Cov_Matrix[1][2] = _C_theta_phi_hist.Interpolate(P_in_vector, Theta_in_vector, Phi_in_vector) * (TMath::DegToRad() * TMath::DegToRad());
+        Cov_Matrix[1][2] = multiplier * _C_theta_phi_hist.Interpolate(P_in_vector, Theta_in_vector, Phi_in_vector) * (TMath::DegToRad() * TMath::DegToRad());
         Cov_Matrix[2][1] = Cov_Matrix[1][2];
 
         SetEntries(_entries_hist.GetBinContent(_entries_hist.GetBin(_entries_hist.GetXaxis()->FindBin(P_in_vector), _entries_hist.GetYaxis()->FindBin(Theta_in_vector), _entries_hist.GetZaxis()->FindBin(Phi_in_vector))));

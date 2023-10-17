@@ -337,7 +337,7 @@ void read_Hipo(char inputFile[256], std::vector<int> required_pids, std::vector<
 								if (!pass_limit_cov_matrix(sector_list[ipart], vec_list[ipart], limit_up_P, limit_down_P, limit_up_Theta, limit_down_Theta, limit_up_Phi, limit_down_Phi))
 								{
 
-										InfoFile << "Particle " << ipart << ", REC: Sector: " << sector_list[ipart] << ",P = " << vec_list[ipart].P() << ", theta: " << vec_list[ipart].Theta() * TMath::RadToDeg() << ", phi: " << vec_list[ipart].Phi() * TMath::RadToDeg() << std::endl;
+										InfoFile << "Particle " << ipart << ", REC: Sector: " << sector_list[ipart] << ",P = " << vec_list[ipart].P() << ", theta: " << vec_list[ipart].Theta() * TMath::RadToDeg() << ", phi: " << vec_list[ipart].Phi() * TMath::RadToDeg() <<" rotated phi: "<<Rotate_to_sector2(vec_list[ipart].Phi() * TMath::RadToDeg())<< std::endl;
 										InfoFile << "Particle " << ipart << ", MC: P = " << mc_vec_list[ipart].P() << ", theta: " << mc_vec_list[ipart].Theta() * TMath::RadToDeg() << ", phi: " << mc_vec_list[ipart].Phi() * TMath::RadToDeg() << std::endl;
 
 										exitEvent = true;
@@ -353,9 +353,9 @@ void read_Hipo(char inputFile[256], std::vector<int> required_pids, std::vector<
 								//std::cout<<"PID "<<pid_list[ipart]<<std::endl;
 								kin_parts.push_back(KinParticle(vec_list[ipart], 0.139, Current_Covmatrix, sector_list[ipart]));
 								// std::cout << "Current_Covmatrix: " << kin_parts[ipart].GetCovMatrix()[1][1] << std::endl;
-								std::cout<<std::endl;
-								std::cout<<vec_list[ipart].P()<<" "<<vec_list[ipart].Theta()*180./3.141592<<" "<<vec_list[ipart].Phi()*180./3.141592<<std::endl;
-								kin_parts[ipart].GetCovMatrix().Print();
+								//std::cout<<std::endl;
+								//std::cout<<vec_list[ipart].P()<<" "<<vec_list[ipart].Theta()*180./3.141592<<" "<<vec_list[ipart].Phi()*180./3.141592<<std::endl;
+								//kin_parts[ipart].GetCovMatrix().Print();
 						}
 
 						// Skip to the next event if at least one of the particles did not make the kinematic cuts
@@ -617,7 +617,7 @@ bool pass_limit_cov_matrix(int sector, TLorentzVector vector, double limit_up_P,
 
 		//double Temp_Phi_in_vector = (vector.Phi() * TMath::RadToDeg() < 0. && sector > 1) ? vector.Phi() * TMath::RadToDeg() + 360 : vector.Phi() * TMath::RadToDeg(); // implement that and edge fiducial cuts
 		//double Phi_in_vector = (sector == 1) ? Temp_Phi_in_vector + 60 : Temp_Phi_in_vector - (sector - 2) * 60.;
-		double Phi_in_vector = Rotate_to_sector2(phi);
+		double Phi_in_vector = Rotate_to_sector2(vector.Phi() * TMath::RadToDeg());
 
 		if (Phi_in_vector < limit_down_Phi || Phi_in_vector > limit_up_Phi)
 				return false;
