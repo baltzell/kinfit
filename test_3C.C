@@ -9,7 +9,7 @@ int test_3C(const int max_events = 10000, const float bg_fraction = 0.1)
 {
     const std::vector<TString> parts = {"p", "#pi^{+}", "#pi^{-}"};
     const std::vector<double> masses = {0.938, 0.139, 0.139};
-    const std::vector<double> masses_bg = {0.938, 0.139, 0.139, 0.139};
+    const std::vector<double> masses_bg = {0.938, 0.139, 0.139};
 
     TLorentzVector target(0.0, 0.0, 0.0, 0.938);
     TLorentzVector beam(0.0, 0.0, 10.6, 10.6);
@@ -46,7 +46,7 @@ int test_3C(const int max_events = 10000, const float bg_fraction = 0.1)
         std::vector<TLorentzVector> parts_sme;
         std::vector<KinParticle> kin_parts_sme;
 
-        for (int ipart = 0; ipart < parts.size(); ++ipart)
+        /*for (int ipart = 0; ipart < parts.size(); ++ipart)
         {
             parts_gen.push_back(*(event.GetDecay(ipart)));
 
@@ -57,7 +57,13 @@ int test_3C(const int max_events = 10000, const float bg_fraction = 0.1)
                 parts_gen_input.push_back(KinParticle(*(event.GetDecay(ipart))));
                 kin_parts_sme.push_back(KinParticle(sme_vector, masses[ipart], RESO));
             }
-        }
+        }*/
+        int ipart = 1;
+        parts_gen.push_back(*(event.GetDecay(ipart)));
+        TLorentzVector sme_vector = smear(event.GetDecay(ipart));
+        parts_sme.push_back(sme_vector);
+        parts_gen_input.push_back(KinParticle(*(event.GetDecay(ipart))));
+        kin_parts_sme.push_back(KinParticle(sme_vector, masses[ipart], RESO));
 
         nevents++;
 
