@@ -20,7 +20,7 @@ int test_3C(const int max_events = 10000, const float bg_fraction = 0.1)
 
     std::vector<double> resolutions;
     std::vector<int> constraint_idx;
-    constraint_idx.push_back(1);
+    constraint_idx.push_back(0);
     for (int i = 0; i < parts.size(); i++)
     {
         for (int j = 0; j < KINES.size(); j++)
@@ -42,18 +42,21 @@ int test_3C(const int max_events = 10000, const float bg_fraction = 0.1)
         auto weight = event.Generate();
 
         std::vector<TLorentzVector> parts_gen;
-        std::vector<TLorentzVector> parts_gen_input;
+        std::vector<KinParticle> parts_gen_input;
         std::vector<TLorentzVector> parts_sme;
         std::vector<KinParticle> kin_parts_sme;
 
         for (int ipart = 0; ipart < parts.size(); ++ipart)
         {
             parts_gen.push_back(*(event.GetDecay(ipart)));
-            if (ipart == 1)
-                parts_gen_input.push_back(*(event.GetDecay(ipart)));
+
             TLorentzVector sme_vector = smear(event.GetDecay(ipart));
             parts_sme.push_back(sme_vector);
-            kin_parts_sme.push_back(KinParticle(sme_vector, masses[ipart], RESO));
+            if (ipart == 1)
+            {
+                parts_gen_input.push_back(KinParticle(*(event.GetDecay(ipart))));
+                kin_parts_sme.push_back(KinParticle(sme_vector, masses[ipart], RESO));
+            }
         }
 
         nevents++;
@@ -62,7 +65,9 @@ int test_3C(const int max_events = 10000, const float bg_fraction = 0.1)
         kin->Add_3C_Constraint(constraint_idx);
         kin->DoFitting(100);
 
-        test.fill_MissingMass(kin, parts_gen, parts_sme, weight, is_background);
+        test.fill_3C(kin, parts_gen, parts_sme, weight, is_background);
+
+        delete kin;
     }
 
     test.plot();
@@ -72,5 +77,5 @@ int test_3C(const int max_events = 10000, const float bg_fraction = 0.1)
 
 int main()
 {
-    return test_4C();
+    return test_3C();
 }

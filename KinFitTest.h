@@ -241,6 +241,66 @@ public:
         return;
     }
 
+    void fill_3C(KinFitter *kin, std::vector<TLorentzVector> parts_gen, std::vector<TLorentzVector> parts_sme, double weight, bool background)
+    {
+        std::vector<TLorentzVector> parts_fit = kin->GetFitted4Vectors();
+
+        int ipart = 0;
+        TLorentzVector missing_gen;
+        missing_gen.SetXYZT(0, 0, 0, 0);
+        TLorentzVector missing_sme;
+        missing_sme.SetXYZT(0, 0, 0, 0);
+        TLorentzVector missing_fit;
+        missing_fit.SetXYZT(0, 0, 0, 0);
+
+        missing_gen = parts_gen[ipart]-parts_gen[ipart];
+        missing_sme = parts_sme[ipart]-parts_gen[ipart];
+        missing_fit = parts_fit[ipart]-parts_gen[ipart];
+
+        for (int jkine = 0; jkine < KINES.size() && kin->GetConfidenceLevel() > 0.0001; jkine++)
+        {
+            _h_pulls[ipart * KINES.size() + jkine]->Fill(kin->GetPulls()[ipart * KINES.size() + jkine]);
+        }
+        _h_fitres[ipart * 3 + 0]->Fill(parts_fit[ipart].Vect().Mag() - parts_sme[ipart].Vect().Mag());
+        _h_fitres[ipart * 3 + 1]->Fill(parts_fit[ipart].Theta() - parts_sme[ipart].Theta());
+        _h_fitres[ipart * 3 + 2]->Fill(parts_fit[ipart].Phi() - parts_sme[ipart].Phi());
+
+        _h_smeres[ipart * 3 + 0]->Fill(parts_gen[ipart].Vect().Mag() - parts_sme[ipart].Vect().Mag());
+        _h_smeres[ipart * 3 + 1]->Fill(parts_gen[ipart].Theta() - parts_sme[ipart].Theta());
+        _h_smeres[ipart * 3 + 2]->Fill(parts_gen[ipart].Phi() - parts_sme[ipart].Phi());
+
+        _h_fitgen[ipart * 3 + 0]->Fill(parts_gen[ipart].Vect().Mag() - parts_fit[ipart].Vect().Mag());
+        _h_fitgen[ipart * 3 + 1]->Fill(parts_gen[ipart].Theta() - parts_fit[ipart].Theta());
+        _h_fitgen[ipart * 3 + 2]->Fill(parts_gen[ipart].Phi() - parts_fit[ipart].Phi());
+
+        _h_mm_gen->Fill(missing_gen.M2(), weight);
+        _h_mm_sme->Fill(missing_sme.M2(), weight);
+        _h_mm_fit->Fill(missing_fit.M2(), weight);
+
+        _h_E_gen->Fill(missing_gen.E(), weight);
+        _h_E_sme->Fill(missing_sme.E(), weight);
+        _h_E_fit->Fill(missing_fit.E(), weight);
+
+        _h_Px_gen->Fill(missing_gen.Px(), weight);
+        _h_Px_sme->Fill(missing_sme.Px(), weight);
+        _h_Px_fit->Fill(missing_fit.Px(), weight);
+
+        _h_Py_gen->Fill(missing_gen.Py(), weight);
+        _h_Py_sme->Fill(missing_sme.Py(), weight);
+        _h_Py_fit->Fill(missing_fit.Py(), weight);
+
+        _h_Pz_gen->Fill(missing_gen.Pz(), weight);
+        _h_Pz_sme->Fill(missing_sme.Pz(), weight);
+        _h_Pz_fit->Fill(missing_fit.Pz(), weight);
+
+        _h_chi->Fill(kin->GetChi2() / kin->GetNDF());
+
+        if (!background)
+            _h_lik_Signal->Fill(kin->GetConfidenceLevel());
+        else
+            _h_lik_BG->Fill(kin->GetConfidenceLevel());
+    }
+
     void plot()
     {
         gStyle->SetOptStat(0);

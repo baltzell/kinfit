@@ -12,6 +12,8 @@
 #include "KinConstraint_EnergyMomentum.h"
 #include "KinConstraint_InvMass.h"
 #include "KinConstraint_MissingMass.h"
+#include "KinConstraint_3C.h"
+
 
 // Kinfitter class
 // This class implemtent the kinematic fitter describe in https://www.jlab.org/Hall-B/notes/clas_notes03/03-017.pdf
@@ -163,7 +165,7 @@ public:
     //3C fit: the only purpose of this contraint is testing
     void Add_3C_Constraint(std::vector<int> index_P_Cons)
     {
-        KinConstraint_MissingMass *in_Cons = new KinConstraint_3C(index_P_Cons);
+        KinConstraint_3C *in_Cons = new KinConstraint_3C(index_P_Cons);
         _Cons.push_back(in_Cons);
         _nconstraints_tot += in_Cons->GetNconstraints();
         _ndf_tot += in_Cons->GetNconstraints();
