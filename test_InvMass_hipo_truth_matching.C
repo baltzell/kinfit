@@ -37,12 +37,13 @@ struct allGenStruct
 };
 
 void read_Hipo(char input_hipo[256], std::vector<int> required_pids, std::vector<double> masses, TLorentzVector target, TLorentzVector beam, KinFitTest test, std::vector<TString> parts, TTree *kinfitTree, kinFitInfoStruct &kinFitData, TTree *allGenTree, allGenStruct &allGenData);
-void read_Rec_Part_Bank(hipo::bank PartBank, hipo::bank MCMatchBank, hipo::bank TrackBank, hipo::bank TrajBank, std::vector<int> *pid_list, std::vector<TLorentzVector> *vec_list, std::vector<int> *in_part_index, std::vector<int> *in_part_sector);
+void read_Rec_Part_Bank(hipo::bank PartBank, hipo::bank MCMatchBank, hipo::bank TrackBank, hipo::bank TrajBank, std::vector<int> *pid_list, std::vector<TLorentzVector> *vec_list, std::vector<int> *in_part_index, std::vector<int> *in_part_sector, std::vector<int> *in_track_status, std::vector<int> *in_track_chi2, std::vector<int> *in_track_ndf);
 void read_MC_Part_Bank(hipo::bank Bank, std::vector<int> required_pids, std::vector<int> *pid_list, std::vector<TLorentzVector> *vec_list, std::vector<int> *in_part_index);
 int get_sector(int index, hipo::bank TrackBank);
 int get_sector_ver2(int index, hipo::bank TrackBank);
 bool pass_fid_cut_DC(int index, hipo::bank TrajBank);
 bool pass_limit_cov_matrix(int sector, TLorentzVector vector, double limit_up_P, double limit_down_P, double limit_up_Theta, double limit_down_Theta, double limit_up_Phi, double limit_down_Phi);
+void get_track_parameters(int index, hipo::bank TrackBank, std::vector<int> *track_status, std::vector<int> *track_chi2, std::vector<int> *track_ndf);
 
 // Utility function to generate reverse index map
 std::map<int, std::vector<int>> loadMapByIndex(hipo::bank fromBank, const char idxVarName[256])
@@ -541,7 +542,7 @@ void read_Rec_Part_Bank(hipo::bank PartBank, hipo::bank MCMatchBank, hipo::bank 
 				pid_list->push_back(211);//pid_pi_plus);
 				in_part_index->push_back(index_pi_plus);
 				in_part_sector->push_back(get_sector(index_pi_plus, TrackBank));
-				get_track_parameters(index_pi_plus, TrackBank, in_track_status, in_track_chi2, in_track_ndf)
+				get_track_parameters(index_pi_plus, TrackBank, in_track_status, in_track_chi2, in_track_ndf);
 		}
 
 		int status_pi_minus = PartBank.getInt("status", index_pi_minus);
@@ -557,7 +558,7 @@ void read_Rec_Part_Bank(hipo::bank PartBank, hipo::bank MCMatchBank, hipo::bank 
 				pid_list->push_back(-211);//pid_pi_minus);
 				in_part_index->push_back(index_pi_minus);
 				in_part_sector->push_back(get_sector(index_pi_minus, TrackBank));
-				get_track_parameters(index_pi_minus, TrackBank, in_track_status, in_track_chi2, in_track_ndf)
+				get_track_parameters(index_pi_minus, TrackBank, in_track_status, in_track_chi2, in_track_ndf);
 
 				if (piminus_vec.P() > 0.0)
 						pass_fid_cut->Fill(piminus_vec.Phi() * TMath::RadToDeg(), piminus_vec.Theta() * TMath::RadToDeg());

@@ -11,7 +11,7 @@
 #include <iostream>
 
 // absolute resolutions (GeV,radians,radians):
-const std::vector<double> RESO = {0.15, 0.02, 0.02};
+const std::vector<double> RESO = {0.1, 0.02, 0.02};
 const std::vector<TString> KINES = {"P", "#theta", "#phi"};
 const std::vector<TString> UNITS = {"GeV", "rad", "rad"};
 
