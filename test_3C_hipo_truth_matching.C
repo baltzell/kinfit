@@ -23,6 +23,11 @@ struct kinFitInfoStruct
 		double pull_p1, pull_p2, pull_theta1, pull_theta2, pull_phi1, pull_phi2;
 		double confidence_level, cov_p1, cov_p2, cov_theta1, cov_theta2, cov_phi1, cov_phi2, cov_p_theta1, cov_p_theta2, cov_p_phi1, cov_p_phi2, cov_phi_theta1, cov_phi_theta2, convergence_status, n_entries_1, n_entries_2;
 		double cov_err_p1, cov_err_p2, cov_err_theta1, cov_err_theta2, cov_err_phi1, cov_err_phi2, cov_err_p_theta1, cov_err_p_theta2, cov_err_p_phi1, cov_err_p_phi2, cov_err_phi_theta1, cov_err_phi_theta2;
+
+		double track_status_1, track_chi2_1, track_ndf_1;
+		double track_status_2, track_chi2_2, track_ndf_2;
+
+
 };
 
 // Create Struct for storing all MC events info
@@ -32,12 +37,13 @@ struct allGenStruct
 };
 
 void read_Hipo(char input_hipo[256], std::vector<int> required_pids, std::vector<double> masses, TLorentzVector target, TLorentzVector beam, KinFitTest test, std::vector<TString> parts, TTree *kinfitTree, kinFitInfoStruct &kinFitData, TTree *allGenTree, allGenStruct &allGenData);
-void read_Rec_Part_Bank(hipo::bank PartBank, hipo::bank MCMatchBank, hipo::bank TrackBank, hipo::bank TrajBank, std::vector<int> *pid_list, std::vector<TLorentzVector> *vec_list, std::vector<int> *in_part_index, std::vector<int> *in_part_sector);
+void read_Rec_Part_Bank(hipo::bank PartBank, hipo::bank MCMatchBank, hipo::bank TrackBank, hipo::bank TrajBank, std::vector<int> *pid_list, std::vector<TLorentzVector> *vec_list, std::vector<int> *in_part_index, std::vector<int> *in_part_sector, std::vector<int> *in_track_status, std::vector<int> *in_track_chi2, std::vector<int> *in_track_ndf);
 void read_MC_Part_Bank(hipo::bank Bank, std::vector<int> required_pids, std::vector<int> *pid_list, std::vector<TLorentzVector> *vec_list, std::vector<int> *in_part_index);
 int get_sector(int index, hipo::bank TrackBank);
 int get_sector_ver2(int index, hipo::bank TrackBank);
 bool pass_fid_cut_DC(int index, hipo::bank TrajBank);
 bool pass_limit_cov_matrix(int sector, TLorentzVector vector, double limit_up_P, double limit_down_P, double limit_up_Theta, double limit_down_Theta, double limit_up_Phi, double limit_down_Phi);
+void get_track_parameters(int index, hipo::bank TrackBank, std::vector<int> *track_status, std::vector<int> *track_chi2, std::vector<int> *track_ndf);
 
 // Utility function to generate reverse index map
 std::map<int, std::vector<int>> loadMapByIndex(hipo::bank fromBank, const char idxVarName[256])
@@ -59,7 +65,7 @@ TH2F *P_pip_P_pim = new TH2F("PpipVSPpim", "PpipVSPpim", 60, 1.0, 11., 60, 1.0, 
 
 std::ofstream InfoFile("event_info.txt");
 
-int test_InvMass_hipo_truth_matching()
+int test_3C_hipo_truth_matching()
 {
 
 		gROOT->SetBatch(kTRUE);
@@ -96,8 +102,8 @@ int test_InvMass_hipo_truth_matching()
 		kinfitTree->Branch("pull_phi1", &kinFitData.pull_phi1, "pull_phi1/D");
 		kinfitTree->Branch("pull_phi2", &kinFitData.pull_phi2, "pull_phi2/D");
 		kinfitTree->Branch("confidence_level", &kinFitData.confidence_level, "confidence_level/D");
-    kinfitTree->Branch("n_entries_1", &kinFitData.n_entries_1, "n_entries_1/D");
-    kinfitTree->Branch("n_entries_2", &kinFitData.n_entries_2, "n_entries_2/D");
+    	kinfitTree->Branch("n_entries_1", &kinFitData.n_entries_1, "n_entries_1/D");
+    	kinfitTree->Branch("n_entries_2", &kinFitData.n_entries_2, "n_entries_2/D");
 		kinfitTree->Branch("cov_p1", &kinFitData.cov_p1, "cov_p1/D");
 		kinfitTree->Branch("cov_p2", &kinFitData.cov_p2, "cov_p2/D");
 		kinfitTree->Branch("cov_theta1", &kinFitData.cov_theta1, "cov_theta1/D");
@@ -123,6 +129,16 @@ int test_InvMass_hipo_truth_matching()
 		kinfitTree->Branch("cov_err_p_phi2", &kinFitData.cov_err_p_phi2, "cov_err_p_phi2/D");
 		kinfitTree->Branch("cov_err_phi_theta1", &kinFitData.cov_err_phi_theta1, "cov_err_phi_theta1/D");
 		kinfitTree->Branch("cov_err_phi_theta2", &kinFitData.cov_err_phi_theta2, "cov_err_phi_theta2/D");
+
+		kinfitTree->Branch("track_status_1", &kinFitData.track_status_1, "track_status_1/D");
+		kinfitTree->Branch("track_chi2_1", &kinFitData.track_chi2_1, "track_chi2_1/D");
+		kinfitTree->Branch("track_ndf_1", &kinFitData.track_ndf_1, "track_ndf_1/D");
+
+		kinfitTree->Branch("track_status_2", &kinFitData.track_status_2, "track_status_2/D");
+		kinfitTree->Branch("track_chi2_2", &kinFitData.track_chi2_2, "track_chi2_2/D");
+		kinfitTree->Branch("track_ndf_2", &kinFitData.track_ndf_2, "track_ndf_2/D");
+
+		
 
 		// Create a TTree to store the generated particle information
 		TTree *allGenTree = new TTree("allGenTree", "allGenTree");
@@ -214,7 +230,7 @@ void read_Hipo(char inputFile[256], std::vector<int> required_pids, std::vector<
 
 		TLorentzVector W = beam + target;
 
-		std::vector<int> constraint_idx = {0, 1};
+		std::vector<int> constraint_idx = {0};
 
 		// std::cout << "Opening input file " << std::endl;
 		hipo::reader reader;
@@ -284,7 +300,11 @@ void read_Hipo(char inputFile[256], std::vector<int> required_pids, std::vector<
 				std::vector<int> input_part_index;
 				std::vector<TLorentzVector> vec_list;
 				std::vector<int> sector_list;
-				read_Rec_Part_Bank(PART, MC_MATCH, TRACK, TRAJ, &pid_list, &vec_list, &input_part_index, &sector_list);
+				std::vector<int> track_status;
+				std::vector<int> track_chi2;
+				std::vector<int> track_ndf;
+
+				read_Rec_Part_Bank(PART, MC_MATCH, TRACK, TRAJ, &pid_list, &vec_list, &input_part_index, &sector_list, &track_status, &track_chi2, &track_ndf);
 
 				// Get generated particle info
 				std::vector<int> mc_pid_list;
@@ -293,11 +313,11 @@ void read_Hipo(char inputFile[256], std::vector<int> required_pids, std::vector<
 				read_MC_Part_Bank(MCPART, required_pids, &mc_pid_list, &mc_vec_list, &mc_input_part_index);
 
 				allGenData.all_mc_p1 = mc_vec_list[0].P();
-				allGenData.all_mc_p2 = mc_vec_list[1].P();
+				//allGenData.all_mc_p2 = mc_vec_list[1].P();
 				allGenData.all_mc_theta1 = mc_vec_list[0].Theta();
-				allGenData.all_mc_theta2 = mc_vec_list[1].Theta();
+				//allGenData.all_mc_theta2 = mc_vec_list[1].Theta();
 				allGenData.all_mc_phi1 = mc_vec_list[0].Phi();
-				allGenData.all_mc_phi2 = mc_vec_list[1].Phi();
+				//allGenData.all_mc_phi2 = mc_vec_list[1].Phi();
 				allGenTree->Fill();
 
 				std::vector<std::vector<double>> pull_vals(parts.size(), std::vector<double>(3));
@@ -346,16 +366,9 @@ void read_Hipo(char inputFile[256], std::vector<int> required_pids, std::vector<
 
 								KinCovariance Current_Covmatrix = (pid_list[ipart] == 211) ? Covariance_PiPlus : Covariance_PiMinus; // attributes PiMinus Cov matrix to anything but pi+
 
-								// Correct the reconstructed momenta to suppress offsets with Gen momenta
-								//if(pid_list[ipart] == 211){MomCorr_PiPlus.Correct_4_Vector(sector_list[ipart], &vec_list[ipart]);}
-								//if(pid_list[ipart] == -211){MomCorr_PiMinus.Correct_4_Vector(sector_list[ipart], &vec_list[ipart]);}
-										  
-								//std::cout<<"PID "<<pid_list[ipart]<<std::endl;
+								
 								kin_parts.push_back(KinParticle(vec_list[ipart], 0.139, Current_Covmatrix, sector_list[ipart]));
-								// std::cout << "Current_Covmatrix: " << kin_parts[ipart].GetCovMatrix()[1][1] << std::endl;
-								//std::cout<<std::endl;
-								//std::cout<<vec_list[ipart].P()<<" "<<vec_list[ipart].Theta()*180./3.141592<<" "<<vec_list[ipart].Phi()*180./3.141592<<std::endl;
-								//kin_parts[ipart].GetCovMatrix().Print();
+								
 						}
 
 						// Skip to the next event if at least one of the particles did not make the kinematic cuts
@@ -364,10 +377,10 @@ void read_Hipo(char inputFile[256], std::vector<int> required_pids, std::vector<
 								continue;
 						}
 
-//std::cout<<"here"<<std::endl;
-						auto kin = new KinFitter({KinParticle(target), KinParticle(beam)}, kin_parts);
-						kin->Add_InvMass_Constraint(constraint_idx, 0.77);
-						kin->DoFitting(100);
+
+						auto kin = new KinFitter({KinParticle(mc_vec_list[0])}, kin_parts);
+        				kin->Add_3C_Constraint(constraint_idx);
+        				kin->DoFitting(100);
 
 						events_passed_kin_cuts++;
 						bool is_background = false;
@@ -386,22 +399,23 @@ void read_Hipo(char inputFile[256], std::vector<int> required_pids, std::vector<
 								}
 								// std::cout << "parts_fit[0].P(): " << parts_fit[0].P() << std::endl;
 								// std::tie(pull_vals, conf_lev) = test.fill_InvariantMass(kin, mc_vec_list, vec_list, constraint_idx, weight, is_background);
-								test.fill_InvariantMass(kin, mc_vec_list, vec_list, constraint_idx, weight, is_background);
+								//test.fill_InvariantMass(kin, mc_vec_list, vec_list, constraint_idx, weight, is_background);
+								test.fill_3C(kin, mc_vec_list, vec_list, weight, is_background);
 								fitted_events++;
 
 								kinFitData.fit_p1 = parts_fit[0].P();
-								kinFitData.fit_p2 = parts_fit[1].P();
+								//kinFitData.fit_p2 = parts_fit[1].P();
 								kinFitData.fit_theta1 = parts_fit[0].Theta();
-								kinFitData.fit_theta2 = parts_fit[1].Theta();
+								//kinFitData.fit_theta2 = parts_fit[1].Theta();
 								kinFitData.fit_phi1 = parts_fit[0].Phi();
-								kinFitData.fit_phi2 = parts_fit[1].Phi();
+								//kinFitData.fit_phi2 = parts_fit[1].Phi();
 
 								kinFitData.pull_p1 = pull_vals[0][0];
-								kinFitData.pull_p2 = pull_vals[1][0];
+								//kinFitData.pull_p2 = pull_vals[1][0];
 								kinFitData.pull_theta1 = pull_vals[0][1];
-								kinFitData.pull_theta2 = pull_vals[1][1];
+								//kinFitData.pull_theta2 = pull_vals[1][1];
 								kinFitData.pull_phi1 = pull_vals[0][2];
-								kinFitData.pull_phi2 = pull_vals[1][2];
+								//kinFitData.pull_phi2 = pull_vals[1][2];
 
 								kinFitData.confidence_level = conf_lev;
 						}
@@ -427,48 +441,57 @@ void read_Hipo(char inputFile[256], std::vector<int> required_pids, std::vector<
 						}
 
 						kinFitData.rec_p1 = vec_list[0].P();
-						kinFitData.rec_p2 = vec_list[1].P();
+						//kinFitData.rec_p2 = vec_list[1].P();
 						kinFitData.rec_theta1 = vec_list[0].Theta();
-						kinFitData.rec_theta2 = vec_list[1].Theta();
+						//kinFitData.rec_theta2 = vec_list[1].Theta();
 						kinFitData.rec_phi1 = vec_list[0].Phi();
-						kinFitData.rec_phi2 = vec_list[1].Phi();
+						//kinFitData.rec_phi2 = vec_list[1].Phi();
 
 						kinFitData.mc_p1 = mc_vec_list[0].P();
-						kinFitData.mc_p2 = mc_vec_list[1].P();
+						//kinFitData.mc_p2 = mc_vec_list[1].P();
 						kinFitData.mc_theta1 = mc_vec_list[0].Theta();
-						kinFitData.mc_theta2 = mc_vec_list[1].Theta();
+						//kinFitData.mc_theta2 = mc_vec_list[1].Theta();
 						kinFitData.mc_phi1 = mc_vec_list[0].Phi();
-						kinFitData.mc_phi2 = mc_vec_list[1].Phi();
+						//kinFitData.mc_phi2 = mc_vec_list[1].Phi();
 
 						kinFitData.cov_p1 = kin_parts[0].GetCovMatrix()[0][0];
-						kinFitData.cov_p2 = kin_parts[1].GetCovMatrix()[0][0];
+						//kinFitData.cov_p2 = kin_parts[1].GetCovMatrix()[0][0];
 						kinFitData.cov_theta1 = kin_parts[0].GetCovMatrix()[1][1];
-						kinFitData.cov_theta2 = kin_parts[1].GetCovMatrix()[1][1];
+						//kinFitData.cov_theta2 = kin_parts[1].GetCovMatrix()[1][1];
 						kinFitData.cov_phi1 = kin_parts[0].GetCovMatrix()[2][2];
-						kinFitData.cov_phi2 = kin_parts[1].GetCovMatrix()[2][2];
+						//kinFitData.cov_phi2 = kin_parts[1].GetCovMatrix()[2][2];
 						kinFitData.cov_p_theta1 = kin_parts[0].GetCovMatrix()[0][1];
-						kinFitData.cov_p_theta2 = kin_parts[1].GetCovMatrix()[0][1];
+						//kinFitData.cov_p_theta2 = kin_parts[1].GetCovMatrix()[0][1];
 						kinFitData.cov_p_phi1 = kin_parts[0].GetCovMatrix()[0][2];
-						kinFitData.cov_p_phi2 = kin_parts[1].GetCovMatrix()[0][2];
+						//kinFitData.cov_p_phi2 = kin_parts[1].GetCovMatrix()[0][2];
 						kinFitData.cov_phi_theta1 = kin_parts[0].GetCovMatrix()[1][2];
-						kinFitData.cov_phi_theta2 = kin_parts[1].GetCovMatrix()[1][2];
+						//kinFitData.cov_phi_theta2 = kin_parts[1].GetCovMatrix()[1][2];
 
 						kinFitData.convergence_status = kin->GetConvergenceStatus();
             			kinFitData.n_entries_1 = kin_parts[0].GetEntries();
-            			kinFitData.n_entries_2 = kin_parts[1].GetEntries();
+            			//kinFitData.n_entries_2 = kin_parts[1].GetEntries();
 
 						kinFitData.cov_err_p1 = kin_parts[0].GetErrCovMatrix()[0][0];
-						kinFitData.cov_err_p2 = kin_parts[1].GetErrCovMatrix()[0][0];
+						//kinFitData.cov_err_p2 = kin_parts[1].GetErrCovMatrix()[0][0];
 						kinFitData.cov_err_theta1 = kin_parts[0].GetErrCovMatrix()[1][1];
-						kinFitData.cov_err_theta2 = kin_parts[1].GetErrCovMatrix()[1][1];
+						//kinFitData.cov_err_theta2 = kin_parts[1].GetErrCovMatrix()[1][1];
 						kinFitData.cov_err_phi1 = kin_parts[0].GetErrCovMatrix()[2][2];
-						kinFitData.cov_err_phi2 = kin_parts[1].GetErrCovMatrix()[2][2];
+						//kinFitData.cov_err_phi2 = kin_parts[1].GetErrCovMatrix()[2][2];
 						kinFitData.cov_err_p_theta1 = kin_parts[0].GetErrCovMatrix()[0][1];
-						kinFitData.cov_err_p_theta2 = kin_parts[1].GetErrCovMatrix()[0][1];
+						//kinFitData.cov_err_p_theta2 = kin_parts[1].GetErrCovMatrix()[0][1];
 						kinFitData.cov_err_p_phi1 = kin_parts[0].GetErrCovMatrix()[0][2];
-						kinFitData.cov_err_p_phi2 = kin_parts[1].GetErrCovMatrix()[0][2];
+						//kinFitData.cov_err_p_phi2 = kin_parts[1].GetErrCovMatrix()[0][2];
 						kinFitData.cov_err_phi_theta1 = kin_parts[0].GetErrCovMatrix()[1][2];
-						kinFitData.cov_err_phi_theta2 = kin_parts[1].GetErrCovMatrix()[1][2];
+						//kinFitData.cov_err_phi_theta2 = kin_parts[1].GetErrCovMatrix()[1][2];
+
+						kinFitData.track_status_1 = track_status[0];
+						kinFitData.track_chi2_1 = track_chi2[0];
+						kinFitData.track_ndf_1 = track_ndf[0];
+
+						//kinFitData.track_status_2 = track_status[1];
+						//kinFitData.track_chi2_2 = track_chi2[1];
+						//kinFitData.track_ndf_2 = track_ndf[1];
+
 
 						kinfitTree->Fill();
 
@@ -480,7 +503,7 @@ void read_Hipo(char inputFile[256], std::vector<int> required_pids, std::vector<
 		std::cout << "Number of events that passed kinematic cuts = " << events_passed_kin_cuts << ", Number failed fits = " << failed_fitting << std::endl;
 }
 
-void read_Rec_Part_Bank(hipo::bank PartBank, hipo::bank MCMatchBank, hipo::bank TrackBank, hipo::bank TrajBank, std::vector<int> *pid_list, std::vector<TLorentzVector> *vec_list, std::vector<int> *in_part_index, std::vector<int> *in_part_sector)
+void read_Rec_Part_Bank(hipo::bank PartBank, hipo::bank MCMatchBank, hipo::bank TrackBank, hipo::bank TrajBank, std::vector<int> *pid_list, std::vector<TLorentzVector> *vec_list, std::vector<int> *in_part_index, std::vector<int> *in_part_sector, std::vector<int> *in_track_status, std::vector<int> *in_track_chi2, std::vector<int> *in_track_ndf)
 {
 		// fail safe for truth matching
 		if (MCMatchBank.getRows() < 1)
@@ -513,9 +536,10 @@ void read_Rec_Part_Bank(hipo::bank PartBank, hipo::bank MCMatchBank, hipo::bank 
 				pid_list->push_back(211);//pid_pi_plus);
 				in_part_index->push_back(index_pi_plus);
 				in_part_sector->push_back(get_sector(index_pi_plus, TrackBank));
+				get_track_parameters(index_pi_plus, TrackBank, in_track_status, in_track_chi2, in_track_ndf);
 		}
 
-		int status_pi_minus = PartBank.getInt("status", index_pi_minus);
+		/*int status_pi_minus = PartBank.getInt("status", index_pi_minus);
 		if (((int)(abs(status_pi_minus) / 1000) == 2) && pass_fid_cut_DC(index_pi_minus, TrajBank) && PartBank.getInt("charge", index_pi_minus) == -1)
 		{
 				int pid_pi_minus = PartBank.getInt("pid", index_pi_minus);
@@ -528,6 +552,7 @@ void read_Rec_Part_Bank(hipo::bank PartBank, hipo::bank MCMatchBank, hipo::bank 
 				pid_list->push_back(-211);//pid_pi_minus);
 				in_part_index->push_back(index_pi_minus);
 				in_part_sector->push_back(get_sector(index_pi_minus, TrackBank));
+				get_track_parameters(index_pi_minus, TrackBank, in_track_status, in_track_chi2, in_track_ndf);
 
 				if (piminus_vec.P() > 0.0)
 						pass_fid_cut->Fill(piminus_vec.Phi() * TMath::RadToDeg(), piminus_vec.Theta() * TMath::RadToDeg());
@@ -541,7 +566,7 @@ void read_Rec_Part_Bank(hipo::bank PartBank, hipo::bank MCMatchBank, hipo::bank 
 
 				piminus_vec.SetXYZM(px_pi_minus, py_pi_minus, pz_pi_minus, 0.139);
 				fail_fid_cut->Fill(piminus_vec.Phi() * TMath::RadToDeg(), piminus_vec.Theta() * TMath::RadToDeg());
-		}
+		}*/
 }
 
 void read_MC_Part_Bank(hipo::bank PartBank, std::vector<int> required_pids, std::vector<int> *pid_list, std::vector<TLorentzVector> *mc_vec_list, std::vector<int> *in_part_index)
@@ -553,30 +578,13 @@ void read_MC_Part_Bank(hipo::bank PartBank, std::vector<int> required_pids, std:
 		piplus_vec.SetXYZM(PartBank.getFloat("px", 2), PartBank.getFloat("py", 2), PartBank.getFloat("pz", 2), 0.139);
 		mc_vec_list->push_back(piplus_vec);
 
-		TLorentzVector piminus_vec;
+		/*TLorentzVector piminus_vec;
 		pid_list->push_back(PartBank.getInt("pid", 3));
 		in_part_index->push_back(1);
 		piminus_vec.SetXYZM(PartBank.getFloat("px", 3), PartBank.getFloat("py", 3), PartBank.getFloat("pz", 3), 0.139);
-		mc_vec_list->push_back(piminus_vec);
+		mc_vec_list->push_back(piminus_vec);*/
 }
-/*
-   int get_sector(int index, hipo::bank TrackBank)
-   {
 
-   int sector = -1;
-   int nrows_track = TrackBank.getRows();
-   for (int i = 0; i < nrows_track; i++)
-   {
-   int pindex = TrackBank.getInt("pindex", i);
-   int in_sector = TrackBank.getInt("sector", i);
-
-   if (pindex == index)
-   sector = in_sector;
-   }
-
-   return sector;
-   }
-   */
 int get_sector(int index, hipo::bank TrackBank)
 {
 		std::map<int, std::vector<int>> trackBankMap = loadMapByIndex(TrackBank, "pindex");
@@ -593,6 +601,29 @@ int get_sector(int index, hipo::bank TrackBank)
 		}
 		return -1; // Index not found in the map
 }
+
+void get_track_parameters(int index, hipo::bank TrackBank, std::vector<int> *track_status, std::vector<int> *track_chi2, std::vector<int> *track_ndf)
+{
+		std::map<int, std::vector<int>> trackBankMap = loadMapByIndex(TrackBank, "pindex");
+		auto it = trackBankMap.find(index);
+		if (it != trackBankMap.end())
+		{
+				const std::vector<int> &indices = it->second;
+				if (!indices.empty())
+				{
+						// Assuming sector is the same for all indices in the vector
+						int status = TrackBank.getInt("status", indices[0]);
+						float chi2 = TrackBank.getFLoat("chi2", indices[0]);
+						int ndf = TrackBank.getInt("NDF", indices[0]);
+						
+						track_status->push_back(status);
+						track_chi2->push_back(chi2);
+						track_ndf->push_back(ndf);
+				}
+		}
+		return; // Index not found in the map
+}
+
 
 bool pass_fid_cut_DC(int index, hipo::bank TrajBank)
 {
@@ -627,5 +658,5 @@ bool pass_limit_cov_matrix(int sector, TLorentzVector vector, double limit_up_P,
 
 int main()
 {
-		return test_InvMass_hipo_truth_matching();
+		return test_3C_hipo_truth_matching();
 }

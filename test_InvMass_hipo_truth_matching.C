@@ -619,8 +619,8 @@ void get_track_parameters(int index, hipo::bank TrackBank, std::vector<int> *tra
 				{
 						// Assuming sector is the same for all indices in the vector
 						int status = TrackBank.getInt("status", indices[0]);
-						int chi2 = TrackBank.getInt("chi2", indices[0]);
-						int ndf = TrackBank.getInt("ndf", indices[0]);
+						float chi2 = TrackBank.getFLoat("chi2", indices[0]);
+						int ndf = TrackBank.getInt("NDF", indices[0]);
 						
 						track_status->push_back(status);
 						track_chi2->push_back(chi2);
