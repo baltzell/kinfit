@@ -76,7 +76,7 @@ public:
         // double Temp_Phi_in_vector = (phi < 0. && sector > 1) ? phi + 360 : phi;
         double Phi_in_vector = Rotate_to_sector2(phi); //(sector == 1) ? Temp_Phi_in_vector + 60 : Temp_Phi_in_vector - (sector - 2) * 60.;
 
-		double multiplier = 0.25;
+		double multiplier = 1;//0.25;
 
         //std::cout << "In cov mat" << std::endl;
         //std::cout << "P " << P_in_vector << " Theta " << Theta_in_vector << " Phi " << Phi_in_vector << std::endl;

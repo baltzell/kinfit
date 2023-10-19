@@ -71,7 +71,7 @@ int test_3C_hipo_truth_matching()
 		gROOT->SetBatch(kTRUE);
 
 		// Create a ROOT file to store the kinematic fit info
-		TFile *kinfitRoot = new TFile("kinfit.root", "RECREATE");
+		TFile *kinfitRoot = new TFile("kinfit_3C.root", "RECREATE");
 
 		// Create a TTree to store kinematic fitting information
 		TTree *kinfitTree = new TTree("kinFitInfoTree", "kinFitInfoTree");
@@ -159,7 +159,7 @@ int test_3C_hipo_truth_matching()
 		const std::vector<int> required_pids = {211, -211};
 		const std::vector<TString> KINES = {"P", "#theta", "#phi"};
 
-		KinFitTest test("InvMass_hipo", parts, W, 0, 0, 0.77);
+		KinFitTest test("3C_hipo", parts, W, 0, 0, 0.77);
 
 		//---------------Specify input file or directory path---------------//
 		//char dir_path[256] = "/volatile/clas12/reedtg/clas12_kinfitter/cov_matrix/pim-sec2-100mil_events_6-15-23/cooked/";
@@ -325,7 +325,7 @@ void read_Hipo(char inputFile[256], std::vector<int> required_pids, std::vector<
 
 				bool exitEvent = false;
 				// Proceed to kinematic fitting only if reconstructed event meets particle requirements
-				if (vec_list.size() != parts.size())
+				if (vec_list.size() != 1)//parts.size())
 				{
 						continue;
 				}
@@ -335,11 +335,13 @@ void read_Hipo(char inputFile[256], std::vector<int> required_pids, std::vector<
 						event_num = RUN.getInt("event", 0);
 						std::vector<KinParticle> kin_parts;
 
-						P_pip_P_pim->Fill(vec_list[0].P(), vec_list[1].P());
+						P_pip_P_pim->Fill(vec_list[0].P(), vec_list[0].P());
 
 						for (int ipart = 0; ipart < pid_list.size(); ++ipart)
 						{
 
+								//std::cout<<"pid list size: "<<pid_list.size()<<std::endl;
+								
 								// Correct the reconstructed momenta to suppress offsets with Gen momenta
 								//std::cout<<"PID "<<pid_list[ipart]<<" "<<ipart<<" "<<pid_list.size()<<std::endl;
 								//std::cout<<"Before "<<vec_list[ipart].P()<<" "<<vec_list[ipart].Theta()*180./3.141592<<" "<<vec_list[ipart].Phi()*180./3.141592<<std::endl;
@@ -390,7 +392,7 @@ void read_Hipo(char inputFile[256], std::vector<int> required_pids, std::vector<
 						{
 								std::vector<TLorentzVector> parts_fit = kin->GetFitted4Vectors();
 								double conf_lev = kin->GetConfidenceLevel();
-								for (int ipart = 0; ipart < parts.size(); ipart++)
+								for (int ipart = 0; ipart < parts_fit.size(); ipart++)
 								{
 										for (int jkine = 0; jkine < KINES.size(); jkine++)
 										{
@@ -613,7 +615,7 @@ void get_track_parameters(int index, hipo::bank TrackBank, std::vector<int> *tra
 				{
 						// Assuming sector is the same for all indices in the vector
 						int status = TrackBank.getInt("status", indices[0]);
-						float chi2 = TrackBank.getFLoat("chi2", indices[0]);
+						float chi2 = TrackBank.getFloat("chi2", indices[0]);
 						int ndf = TrackBank.getInt("NDF", indices[0]);
 						
 						track_status->push_back(status);
