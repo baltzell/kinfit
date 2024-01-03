@@ -1,0 +1,17 @@
+#!/bin/bash
+#SBATCH --partition=production
+#SBATCH --job-name=pip_all_bins
+#SBATCH --output=/farm_out/%u/%x-%j-%N.out
+#SBATCH --error=/farm_out/%u/%x-%j-%N.err
+#SBATCH --input=/volatile/clas12/reedtg/clas12_kinfitter/cov_matrix/pip_sec2_truth/cooked/
+###SBATCH --input=/volatile/clas12/reedtg/clas12_kinfitter/cov_matrix/pim_sec2_10mil_events/cooked/
+###SBATCH --input=/volatile/clas12/reedtg/clas12_kinfitter/cov_matrix/pim_sec2_100mil_events/cooked/
+###SBATCH --input=/volatile/clas12/reedtg/clas12_kinfitter/cov_matrix/pim_sec2_50mil_events/cooked/
+#SBATCH --ntasks=4
+#SBATCH --mem-per-cpu=8G
+#SBATCH --mail-user=username@jlab.org
+#SBATCH --gres=disk:800G
+#SBATCH --time=72:00:00
+
+###COMMAND:
+/path/to/covMatrix_single_particle.exe
