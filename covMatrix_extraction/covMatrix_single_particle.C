@@ -42,12 +42,12 @@ const int P_bins = 25;
 const int theta_bins = 25;
 const int phi_bins = 25;
 
-const double P_bin_min = 1;
-const double P_bin_max = 11;
+const double P_bin_min = 0.2;
+const double P_bin_max = 12;
 const double P_bin_size = (P_bin_max - P_bin_min)/P_bins;
-const double theta_bin_min = 5;
-const double theta_bin_max = 35;
-const double theta_bin_size = (theta_bin_max - theta_bin_min) / theta_bins;
+const double theta_bin_min = 5;    // Same for both pi- and pi+. Theta max gets initialized at the beginning of covMatrix_extraction() depeneding on particle type
+//const double theta_bin_max = 35;
+//const double theta_bin_size = (theta_bin_max - theta_bin_min) / theta_bins;
 const double phi_bin_min = 30;
 const double phi_bin_max = 90;
 const double phi_bin_size = (phi_bin_max - phi_bin_min) / phi_bins;
@@ -76,8 +76,8 @@ struct binnedKinInfo
 
 
 void read_Hipo(char in_data[256], int part_charge, float part_mass, partInfoStruct &partInfo, int& event_count, binnedKinInfo &binnedKins, TH3* P_theta_and_phi);
-void read_Part_Bank(hipo::bank PartBank, std::vector<int>* pid, std::vector<float>* px, std::vector<float>* py, std::vector<float>* pz);
-void read_Part_Bank(hipo::bank PartBank, hipo::bank CalBank, hipo::bank RecTrack, hipo::bank TBTrack, std::vector<int>* pid, std::vector<float>* px, std::vector<float>* py, std::vector<float>* pz, std::vector<int> *rec_status, std::vector<float> *chi2, std::vector<int> *ndf, int& event_count);
+void read_MC_Part_Bank(hipo::bank PartBank, std::vector<int>* pid, std::vector<float>* px, std::vector<float>* py, std::vector<float>* pz);
+void read_Rec_Part_Bank(hipo::bank PartBank, hipo::bank MCMatchBank, hipo::bank TBTrack, std::vector<int>* pid, std::vector<float>* px, std::vector<float>* py, std::vector<float>* pz, std::vector<int> *rec_status, std::vector<float> *chi2, std::vector<int> *ndf, int& event_count);
 void get_track_parameters(int index, const hipo::bank TrackBank, int& track_sec, float& track_chi2, int& track_ndf);
 
 
@@ -157,7 +157,17 @@ void zoomOutliers(TH1* h, float n_rms) {
 void iqr_zoom(TH1* h, float iqr, float q25, float q75, float N) {
   const int min_bin = h->FindBin(q25 - N * iqr);
   const int max_bin = h->FindBin(q75 + N * iqr);
+
+  // Get the current range
   h->GetXaxis()->SetRange(min_bin,max_bin);
+  const int min_bin_current = h->GetXaxis()->GetFirst();
+  const int max_bin_current = h->GetXaxis()->GetLast();
+  
+  // Only perform change of histogram range if it's being decreased
+  if (min_bin > min_bin_current & max_bin < max_bin_current) {
+    h->GetXaxis()->SetRange(min_bin,max_bin);
+  }
+  
 }
 
 struct CovarianceResult {
@@ -214,60 +224,75 @@ CovarianceResult calculateCovarianceRobust(const std::vector<double>& p_diff, co
   return result;
 }
 
+// Define a struct to hold input parameters for calculateCovariance
+struct CovInputParams {
+  int kin_id1;
+  int kin_id2;
+  double kinvar1_mean;
+  double kinvar2_mean;
+  double p_bin_center;
+  std::vector<double> p_diff;
+  std::vector<double> theta_diff;
+  std::vector<double> phi_diff;
+  double p_low;
+  double p_upp;
+  double theta_low;
+  double theta_upp;
+  double phi_low;
+  double phi_upp;
 
-double calculateCovariance(const int kin_id1, const int kin_id2, const double kinvar1_mean, const double p_bin_center, const double kinvar2_mean, const std::vector<double>& p_diff, const std::vector<double>& theta_diff, const std::vector<double>& phi_diff, double p_low, double p_upp, double theta_low, double theta_upp, double phi_low, double phi_upp) {
+  // Constructor for initialization of input params
+  CovInputParams(int id1, int id2, double mean1, double mean2, double bin_center,
+		 const std::vector<double>& pdiff, const std::vector<double>& thetadiff, const std::vector<double>& phidiff,
+		 double plow, double pupp, double thetalow, double thetaupp, double philow, double phiupp)
+    : kin_id1(id1), kin_id2(id2), kinvar1_mean(mean1), kinvar2_mean(mean2), p_bin_center(bin_center),
+      p_diff(pdiff), theta_diff(thetadiff), phi_diff(phidiff),
+      p_low(plow), p_upp(pupp), theta_low(thetalow), theta_upp(thetaupp), phi_low(philow), phi_upp(phiupp) {}
+};
+
+void calculateCovariance(double& covariance, int& good_counts, const CovInputParams& params) {
   std::vector<double> x;
   std::vector<double> y;
   int calculate_p_mean = 0;
   double p_sum = 0;
   double p_mean = 0;
 
-  if (kin_id1 == 1) {
-    x = p_diff;
-    std::transform(x.begin(), x.end(), x.begin(), [p_bin_center](double element) { return element * p_bin_center; });
-    calculate_p_mean = 1;
+  if (params.kin_id1 == 1) {
+    x = params.p_diff;
   }
-  else if (kin_id1 == 2) {
-    x = theta_diff;
+  else if (params.kin_id1 == 2) {
+    x = params.theta_diff;
   }
-  else if (kin_id1 == 3) {
-    x = phi_diff;
+  else if (params.kin_id1 == 3) {
+    x = params.phi_diff;
   }
-  if (kin_id2 == 1) {
-    y = p_diff;
-    std::transform(y.begin(), y.end(), y.begin(), [p_bin_center](double element) { return element * p_bin_center; });
-    calculate_p_mean = 1;
+  if (params.kin_id2 == 1) {
+    y = params.p_diff;
   }
-  else if (kin_id2 == 2){
-    y = theta_diff;
+  else if (params.kin_id2 == 2){
+    y = params.theta_diff;
   }
-  else if (kin_id2 == 3) {
-    y = phi_diff;
+  else if (params.kin_id2 == 3) {
+    y = params.phi_diff;
   }
 
   Int_t numValues = x.size(); // Get the number of values in the arrays (any of the kinematic variables can be used for this)   
-  double covariance = 0;
-  int good_counts = 0;  //good_counts are those that are within the kinematic (rec - MC) bounds, to remove outlier
+  covariance = 0;
+  good_counts = 0;  //good_counts are those that are within the kinematic (rec - MC) bounds, to remove outlier
   for (int i = 0; i < numValues; i++) {
-    if ((p_diff[i] > p_low && p_diff[i] < p_upp) && (theta_diff[i] > theta_low && theta_diff[i] < theta_upp) && (phi_diff[i] > phi_low && phi_diff[i] < phi_upp)) {
-      covariance += (x[i] - kinvar1_mean) * (y[i] - kinvar2_mean);
+    if ((params.p_diff[i] > params.p_low && params.p_diff[i] < params.p_upp) && 
+	(params.theta_diff[i] > params.theta_low && params.theta_diff[i] < params.theta_upp) && 
+	(params.phi_diff[i] > params.phi_low && params.phi_diff[i] < params.phi_upp)) {
+      covariance += (x[i] - params.kinvar1_mean) * (y[i] - params.kinvar2_mean);
       good_counts++;
-      //if (calculate_p_mean) {
-      //p_sum += rec_p[i];
-      //}
     }
   }
   if (good_counts > 0) {
     covariance /= good_counts;
-    //if (calculate_p_mean) {
-    //  p_mean = p_sum / good_counts;
-    //}
   } 
   else {
     covariance = 0;
   }
-
-  return covariance;
 }
 
 
@@ -278,13 +303,13 @@ const TString part_type = "#pi^{+}";
 float part_mass;
 int part_charge;
 
-//Set boundaries for the kinematics. This is necessaery to exclude outliers
+//Set boundaries for the kinematics. This is used to set the initial bounds for the (rec - mc) distributions of the kinematics
 const double p_low_init = -1;
 const double p_upp_init = 1;
-const double theta_low_init = -0.05 * 180 / 3.14159;
-const double theta_upp_init = 0.05 * 180 / 3.14159;
-const double phi_low_init = -0.1 * 180 / 3.14159;
-const double phi_upp_init = 0.1 * 180 / 3.14159;
+const double theta_low_init = -0.1 * 180 / 3.14159;
+const double theta_upp_init = 0.1 * 180 / 3.14159;
+const double phi_low_init = -0.2 * 180 / 3.14159;
+const double phi_upp_init = 0.2 * 180 / 3.14159;
 
 //These variables are used for the plots that combine all P, theta, and phi bins
 const std::vector<TString> KINES = {"P", "#theta", "#phi"};
@@ -298,25 +323,21 @@ const std::vector<double> kin_delta_plots_high = {p_upp_init, theta_upp_init, ph
 const int max_files = 10000;
 const int N_events_per_file = 10000;
 const int N_events = max_files*N_events_per_file;
-const TString out_name = Form("pip_iterative_outlier_cut_%i_in_files", max_files);
+const TString out_name = Form("pip_%i_in_files", max_files);
 
 int covMatrix_extraction()
 {
   //---------------Specify input file or directory path---------------//      
-  //char in_data[256] = "/volatile/clas12/reedtg/clas12_kinfitter/cov_matrix/pip-sec2-100mil_events/cooked/";
-  //char in_data[256] = "/volatile/clas12/reedtg/clas12_kinfitter/cov_matrix/pip-sec2-100mil_events_6-13-23/cooked/";
-  //char in_data[256] = "/volatile/clas12/reedtg/clas12_kinfitter/cov_matrix/pim-sec2-100mil_events_6-15-23/cooked/";
-  //char in_data[256] = "/volatile/clas12/reedtg/clas12_kinfitter/cov_matrix/pim-sec2-100mil_events_6-15-23/cooked/out_pim-sec2-100mil_events_6-15-23-9678.rec.hipo";
-  //------------------------------------------------------------------//       
   
-
+  // Pi-
   //std::vector<std::string> input_directories = {"/volatile/clas12/reedtg/clas12_kinfitter/cov_matrix/pim-sec2-100mil_events_6-15-23/cooked/"};
   //std::vector<std::string> input_directories = {"volatile/clas12/reedtg/clas12_kinfitter/cov_matrix/pim_sec2_100mil_events/testdir/"};
   //std::vector<std::string> input_directories = {"volatile/clas12/reedtg/clas12_kinfitter/cov_matrix/pim_sec2_100mil_events/cooked/",
   //						"/volatile/clas12/reedtg/clas12_kinfitter/cov_matrix/pim_sec2_10mil_events/cooked/",
   //						"/volatile/clas12/reedtg/clas12_kinfitter/cov_matrix/pim_sec2_50mil_events/cooked/"};
   
-  std::vector<std::string> input_directories = {"/volatile/clas12/reedtg/clas12_kinfitter/cov_matrix/pip-sec2-100mil_events_6-13-23/cooked/"};
+  // Pi+
+  //std::vector<std::string> input_directories = {"/volatile/clas12/reedtg/clas12_kinfitter/cov_matrix/pip-sec2-100mil_events_6-13-23/cooked/"};
   //std::vector<std::string> input_directories = {"/volatile/clas12/reedtg/clas12_kinfitter/cov_matrix/pip-sec2_small_region/cooked/",
   //						"/volatile/clas12/reedtg/clas12_kinfitter/cov_matrix/pip-sec2_small_region_2/cooked/"};
   //std::vector<std::string> input_directories = {"/volatile/clas12/reedtg/clas12_kinfitter/cov_matrix/pip-sec2_medium_region/cooked/"};
@@ -324,7 +345,9 @@ int covMatrix_extraction()
   //  "/volatile/clas12/reedtg/clas12_kinfitter/cov_matrix/pip-sec2-100mil_events/cooked/",
   //  "/volatile/clas12/reedtg/clas12_kinfitter/cov_matrix/pip-sec2-100mil_events_6-13-23/cooked/"};
   //std::vector<std::string> input_directories = {"/volatile/clas12/reedtg/clas12_kinfitter/cov_matrix/pip-sec2-100mil_events_6-13-23/cooked/"};
-
+  std::vector<std::string> input_directories = {"/volatile/clas12/reedtg/clas12_kinfitter/cov_matrix/pip_sec2_truth/cooked/"};
+  
+  //-----------------------------------------------------------------//
 
   partInfoStruct partInfo;
   binnedKinInfo binnedKins;
@@ -335,11 +358,14 @@ int covMatrix_extraction()
     part_mass = 0.13957;
     if (strcmp(part_type, "#pi^{+}") == 0) {
       part_charge = 1;
+      theta_bin_max = 37;
     }
     else if (strcmp(part_type, "#pi^{-}") == 0) {
       part_charge = -1;
+      theta_bin_max = 40;
     }
   }
+  const double theta_bin_size = (theta_bin_max - theta_bin_min) / theta_bins; 
 
   partInfo.p_diff_vec.reserve(N_events);
   partInfo.theta_diff_deg_vec.reserve(N_events);
@@ -477,6 +503,12 @@ int covMatrix_extraction()
   double covariance_theta_phi_err;
   int N_entries;    //This number could include outliers
   int N_good_events;
+  int N_events_C_P;
+  int N_events_C_theta;
+  int N_events_C_phi;
+  int N_events_C_P_theta;
+  int N_events_C_P_phi;
+  int N_events_C_theta_phi;
   double current_P_bin_center;
   double current_theta_bin_center;
   double current_phi_bin_center;
@@ -529,12 +561,12 @@ int covMatrix_extraction()
 	std::vector<TH1*> rec_kin_plots;
 	std::vector<TH1*> kin_delta_plots;
 	std::vector<TH2*> kin_delta_2D_plots;
-	int delta_p_plots_bins = 1000;
-	int delta_theta_plots_bins = 500;
-	int delta_phi_plots_bins = 500;
+	int delta_p_plots_bins = 2000;
+	int delta_theta_plots_bins = 1000;
+	int delta_phi_plots_bins = 1000;
 
-	TH1* delta_p_hist = new TH1F(Form("delta_p_plot"), Form(";#frac{#DeltaP}{P};Counts"), delta_p_plots_bins, p_low_init, p_upp_init);
-	//TH1* delta_p_hist = new TH1F(Form("delta_p_plot"), Form(";#DeltaP;Counts"), delta_p_plots_bins, p_low_init, p_upp_init);
+	//TH1* delta_p_hist = new TH1F(Form("delta_p_plot"), Form(";#frac{#DeltaP}{P};Counts"), delta_p_plots_bins, p_low_init, p_upp_init);
+	TH1* delta_p_hist = new TH1F(Form("delta_p_plot"), Form(";#DeltaP;Counts"), delta_p_plots_bins, p_low_init, p_upp_init);
 	delta_p_hist->GetXaxis()->SetTitleSize(0.05);
 	delta_p_hist->GetYaxis()->SetTitleSize(0.05);
 	delta_p_hist->GetXaxis()->SetTitleOffset(0.8);
@@ -555,8 +587,8 @@ int covMatrix_extraction()
         delta_phi_hist->GetYaxis()->SetTitleOffset(0.9);
         kin_delta_plots.push_back(delta_phi_hist);
 
-	TH2* delta_p_delta_theta_hist = new TH2F(Form("delta_P_delta_theta_plot"), Form(";#Delta #theta (Rec - Gen) [deg];#frac{#DeltaP}{P}"), delta_theta_plots_bins, theta_low_init, theta_upp_init, delta_p_plots_bins, p_low_init, p_upp_init);
-	//TH2* delta_p_delta_theta_hist = new TH2F(Form("delta_P_delta_theta_plot"), Form(";#Delta #theta (Rec - Gen) [deg];#DeltaP"), delta_theta_plots_bins, theta_low_init, theta_upp_init, delta_p_plots_bins, p_low_init, p_upp_init);
+	//TH2* delta_p_delta_theta_hist = new TH2F(Form("delta_P_delta_theta_plot"), Form(";#Delta #theta (Rec - Gen) [deg];#frac{#DeltaP}{P}"), delta_theta_plots_bins, theta_low_init, theta_upp_init, delta_p_plots_bins, p_low_init, p_upp_init);
+	TH2* delta_p_delta_theta_hist = new TH2F(Form("delta_P_delta_theta_plot"), Form(";#Delta #theta (Rec - Gen) [deg];#DeltaP"), delta_theta_plots_bins, theta_low_init, theta_upp_init, delta_p_plots_bins, p_low_init, p_upp_init);
 	delta_p_delta_theta_hist->GetXaxis()->SetTitleSize(0.05);
 	delta_p_delta_theta_hist->GetYaxis()->SetTitleSize(0.05);
 	delta_p_delta_theta_hist->GetXaxis()->SetTitleOffset(0.8);
@@ -570,8 +602,8 @@ int covMatrix_extraction()
         delta_theta_delta_phi_hist->GetYaxis()->SetTitleOffset(0.9);
         kin_delta_2D_plots.push_back(delta_theta_delta_phi_hist);
 
-	TH2* delta_p_delta_phi_hist = new TH2F(Form("delta_P_delta_phi_plot"), Form(";#Delta #phi (Rec - Gen) [deg];#frac{#DeltaP}{P}"), delta_phi_plots_bins, phi_low_init, phi_upp_init, delta_p_plots_bins, p_low_init, p_upp_init);
-	//TH2* delta_p_delta_phi_hist = new TH2F(Form("delta_P_delta_phi_plot"), Form(";#Delta #phi (Rec - Gen) [deg];#DeltaP"), delta_phi_plots_bins, phi_low_init, phi_upp_init, delta_p_plots_bins, p_low_init, p_upp_init);
+	//TH2* delta_p_delta_phi_hist = new TH2F(Form("delta_P_delta_phi_plot"), Form(";#Delta #phi (Rec - Gen) [deg];#frac{#DeltaP}{P}"), delta_phi_plots_bins, phi_low_init, phi_upp_init, delta_p_plots_bins, p_low_init, p_upp_init);
+	TH2* delta_p_delta_phi_hist = new TH2F(Form("delta_P_delta_phi_plot"), Form(";#Delta #phi (Rec - Gen) [deg];#DeltaP"), delta_phi_plots_bins, phi_low_init, phi_upp_init, delta_p_plots_bins, p_low_init, p_upp_init);
         delta_p_delta_phi_hist->GetXaxis()->SetTitleSize(0.05);
         delta_p_delta_phi_hist->GetYaxis()->SetTitleSize(0.05);
         delta_p_delta_phi_hist->GetXaxis()->SetTitleOffset(0.8);
@@ -579,18 +611,18 @@ int covMatrix_extraction()
         kin_delta_2D_plots.push_back(delta_p_delta_phi_hist);
 
         for (int i = 0; i < p_diff_this_bin.size(); i++) {
-          //kin_delta_plots[0]->Fill(p_diff_this_bin[i]);
+          kin_delta_plots[0]->Fill(p_diff_this_bin[i]);
 	  //kin_delta_plots[0]->Fill(p_diff_this_bin[i] / rec_p_this_bin[i]);
-	  kin_delta_plots[0]->Fill(deltaP_over_p_this_bin[i]);
+	  //kin_delta_plots[0]->Fill(deltaP_over_p_this_bin[i]);
 
           kin_delta_plots[1]->Fill(theta_diff_this_bin[i]);
           kin_delta_plots[2]->Fill(phi_diff_this_bin[i]);
           //kin_delta_2D_plots[2]->Fill(phi_diff_this_bin[i], p_diff_this_bin[i] / rec_p_this_bin[i]);
           //kin_delta_2D_plots[0]->Fill(theta_diff_this_bin[i], p_diff_this_bin[i] / rec_p_this_bin[i]);
-	  //kin_delta_2D_plots[2]->Fill(phi_diff_this_bin[i], p_diff_this_bin[i]);
-          //kin_delta_2D_plots[0]->Fill(theta_diff_this_bin[i], p_diff_this_bin[i]);
-	  kin_delta_2D_plots[2]->Fill(phi_diff_this_bin[i], deltaP_over_p_this_bin[i]);
-	  kin_delta_2D_plots[0]->Fill(theta_diff_this_bin[i], deltaP_over_p_this_bin[i]);
+	  kin_delta_2D_plots[2]->Fill(phi_diff_this_bin[i], p_diff_this_bin[i]);
+          kin_delta_2D_plots[0]->Fill(theta_diff_this_bin[i], p_diff_this_bin[i]);
+	  //kin_delta_2D_plots[2]->Fill(phi_diff_this_bin[i], deltaP_over_p_this_bin[i]);
+	  //kin_delta_2D_plots[0]->Fill(theta_diff_this_bin[i], deltaP_over_p_this_bin[i]);
           kin_delta_2D_plots[1]->Fill(phi_diff_this_bin[i], theta_diff_this_bin[i]);
         }
 	// ========================================================================================================================================= //
@@ -623,6 +655,9 @@ int covMatrix_extraction()
 	Double_t delta_p_quantiles[2];
 	Double_t delta_theta_quantiles[2];
 	Double_t delta_phi_quantiles[2];
+	Double_t delta_p_peak_quantiles[2];
+        Double_t delta_theta_peak_quantiles[2];
+        Double_t delta_phi_peak_quantiles[2];
 	Double_t probs[2] = {0.25, 0.75};
 
 	// Calculate the quantiles
@@ -641,19 +676,19 @@ int covMatrix_extraction()
 	//std::cout << "IQR: " << iqr << std::endl;
 
 	int bins_in_p_iqr = (int) (delta_p_iqr / p_binWidth + 0.5);
-	int p_rebin_num = bins_in_p_iqr / 5;  // The numerator specifies the number of bins desired over peak
+	int p_rebin_num = bins_in_p_iqr / 7;  // The numerator is a factor that dictates the desired number of bins over peak
 	int bins_in_theta_iqr = (int) (delta_theta_iqr / theta_binWidth + 0.5);
-	int theta_rebin_num = bins_in_theta_iqr / 5;
+	int theta_rebin_num = bins_in_theta_iqr / 7;
 	int bins_in_phi_iqr = (int) (delta_phi_iqr / phi_binWidth + 0.5);
-	int phi_rebin_num = bins_in_phi_iqr / 5;
+	int phi_rebin_num = bins_in_phi_iqr / 7;
 
-	if (p_rebin_num > 0) {
+	if (p_rebin_num > 1) {
 	  kin_delta_plots[0]->Rebin(p_rebin_num);
 	}
-	if (theta_rebin_num > 0) {
+	if (theta_rebin_num > 1) {
           kin_delta_plots[1]->Rebin(theta_rebin_num);
         }
-	if (phi_rebin_num > 0) {
+	if (phi_rebin_num > 1) {
           kin_delta_plots[2]->Rebin(theta_rebin_num);
 	}
 
@@ -675,84 +710,6 @@ int covMatrix_extraction()
         double phi_mean = kin_delta_plots[2]->GetMean();
         double phi_rms = kin_delta_plots[2]->GetRMS();
 
-
-	/*
-	//------------- Reset the range based on the initial max height bin center and rms ------------//
-	//std::cout<<kin_delta_plots[0]->GetMean()<<" "<<kin_delta_plots[0]->GetRMS()<<std::endl;
-	delta_kin_canvas->cd(1);
-	zoomOutliers(kin_delta_plots[0], 3.0);
-	kin_delta_plots[0]->Draw("SAME");
-	double p_mean = kin_delta_plots[0]->GetMean();
-	p_rms = kin_delta_plots[0]->GetRMS();
-	//std::cout<<kin_delta_plots[0]->GetMean()<<" "<<kin_delta_plots[0]->GetRMS()<<std::endl;
-
-	delta_kin_canvas->cd(2);
-	//std::cout << "Before zooming: " << kin_delta_plots[1]->GetMean()<<" "<<kin_delta_plots[1]->GetRMS()<<std::endl;
-        zoomOutliers(kin_delta_plots[1], 3.0);
-        kin_delta_plots[1]->Draw("SAME");
-	double theta_mean = kin_delta_plots[1]->GetMean();
-	theta_rms = kin_delta_plots[1]->GetRMS();
-	//std::cout << "After zooming: " << kin_delta_plots[1]->GetMean()<<" "<<kin_delta_plots[1]->GetRMS()<<std::endl;
-
-	delta_kin_canvas->cd(3);
-        zoomOutliers(kin_delta_plots[2], 3.0);
-        kin_delta_plots[2]->Draw("SAME");
-	double phi_mean = kin_delta_plots[2]->GetMean();
-	phi_rms = kin_delta_plots[2]->GetRMS();
-	//-------------------------------------------------------------------------------------------//
-	*/
-	
-
-	/*
-	while ((((p_xmax + p_rms) - (p_xmax - p_rms)) / p_binWidth) > 20) {
-	  //std::cout << "Rebinning p, " << (((p_xmax + p_rms) - (p_xmax - p_rms)) / p_binWidth) << " bins over peak range" << std::endl;
-          kin_delta_plots[0]->Rebin(2);
-          p_binmax = kin_delta_plots[0]->GetMaximumBin();
-          p_xmax = kin_delta_plots[0]->GetXaxis()->GetBinCenter(p_binmax);
-          p_rms = kin_delta_plots[0]->GetRMS();
-          p_binWidth = kin_delta_plots[0]->GetXaxis()->GetBinWidth(1);
-        }
-	//std::cout << "Before rebinning while-loop: theta_xmax=" << theta_xmax << ", theta_rms=" << theta_rms << ", theta_binWidth=" << theta_binWidth << std::endl;
-        while ((((theta_xmax + theta_rms) - (theta_xmax - theta_rms))/ theta_binWidth) > 20) {
-	  //std::cout << "Before rebinning, in while-loop: theta_xmax=" << theta_xmax << ", theta_rms=" << theta_rms<< ", theta_binWidth=" << theta_binWidth << std::endl;
-	  kin_delta_plots[1]->Rebin(2);
-          theta_binmax = kin_delta_plots[1]->GetMaximumBin();
-          theta_xmax = kin_delta_plots[1]->GetXaxis()->GetBinCenter(theta_binmax);
-          theta_rms = kin_delta_plots[1]->GetRMS();
-          theta_binWidth = kin_delta_plots[1]->GetXaxis()->GetBinWidth(1);
-        }
-        while ((((phi_xmax + phi_rms) - (phi_xmax - phi_rms)) / phi_binWidth) > 20) {
-          kin_delta_plots[2]->Rebin(2);
-          phi_binmax = kin_delta_plots[2]->GetMaximumBin();
-          phi_xmax = kin_delta_plots[2]->GetXaxis()->GetBinCenter(phi_binmax);
-          phi_rms = kin_delta_plots[2]->GetRMS();
-          phi_binWidth = kin_delta_plots[2]->GetXaxis()->GetBinWidth(1);
-        }
-
-	//------------- Rebinning causes the ranges to change. So zoom in again.  ------------//
-	delta_kin_canvas->cd(1);
-        zoomOutliers(kin_delta_plots[0], 3.0);
-        kin_delta_plots[0]->Draw("SAME");
-        p_mean = kin_delta_plots[0]->GetMean();
-        p_rms = kin_delta_plots[0]->GetRMS();
-
-        delta_kin_canvas->cd(2);
-	//std::cout << "Before zooming: " << kin_delta_plots[1]->GetMean()<<" "<<kin_delta_plots[1]->GetRMS()<<std::endl;
-        zoomOutliers(kin_delta_plots[1], 3.0);
-        kin_delta_plots[1]->Draw("SAME");
-        theta_mean = kin_delta_plots[1]->GetMean();
-        theta_rms = kin_delta_plots[1]->GetRMS();
-	//std::cout << "After zooming: " << kin_delta_plots[1]->GetMean()<<" "<<kin_delta_plots[1]->GetRMS()<<std::endl;
-
-        delta_kin_canvas->cd(3);
-        zoomOutliers(kin_delta_plots[2], 3.0);
-        kin_delta_plots[2]->Draw("SAME");
-        phi_mean = kin_delta_plots[2]->GetMean();
-        phi_rms = kin_delta_plots[2]->GetRMS();
-	//-------------------------------------------------------------------------------------------//
-	*/
-	//delta_kin_canvas->cd(1);
-	//kin_delta_plots[1]->Draw("SAME");
 
 	//Get bin centers 
 	current_P_bin_center = (P_bin_high + P_bin_low) / 2;
@@ -803,21 +760,31 @@ int covMatrix_extraction()
         deltaP_deltaPhi_histDir->cd();
         kin_delta_2D_plots[2]->Write();
 
-	double p_low = p_mean - 3 * p_rms;
-	double p_upp = p_mean + 3 * p_rms;
-	double theta_low = theta_mean - 3 * theta_rms;
-	double theta_upp = theta_mean + 3 * theta_rms;
-	double phi_low = phi_mean - 3 * phi_rms;
-	double phi_upp = phi_mean + 3 * phi_rms;
+	double rms_multiple = 2;
+        double p_low = p_mean - rms_multiple * p_rms;
+        double p_upp = p_mean + rms_multiple * p_rms;
+        double theta_low = theta_mean - rms_multiple * theta_rms;
+        double theta_upp = theta_mean + rms_multiple * theta_rms;
+        double phi_low = phi_mean - rms_multiple * phi_rms;
+        double phi_upp = phi_mean + rms_multiple * phi_rms;
 	
-	// ------------------ Calculate covariance manually with reset ranges--------------------//
-	variance_P = calculateCovariance(1, 1, p_mean, p_mean, current_P_bin_center, p_diff_this_bin, theta_diff_this_bin, phi_diff_this_bin, p_low, p_upp, theta_low, theta_upp, phi_low, phi_upp);
-       	variance_theta = calculateCovariance(2, 2, theta_mean, current_P_bin_center, theta_mean, p_diff_this_bin, theta_diff_this_bin, phi_diff_this_bin, p_low, p_upp, theta_low, theta_upp, phi_low, phi_upp);
-	variance_phi = calculateCovariance(3, 3, phi_mean, phi_mean, current_P_bin_center, p_diff_this_bin, theta_diff_this_bin, phi_diff_this_bin, p_low, p_upp, theta_low, theta_upp, phi_low, phi_upp);
-	covariance_P_phi = calculateCovariance(1, 3, p_mean, phi_mean, current_P_bin_center, p_diff_this_bin, theta_diff_this_bin, phi_diff_this_bin, p_low, p_upp, theta_low, theta_upp, phi_low, phi_upp);
-	covariance_P_theta = calculateCovariance(1, 2, p_mean, theta_mean, current_P_bin_center, p_diff_this_bin, theta_diff_this_bin, phi_diff_this_bin, p_low, p_upp, theta_low, theta_upp, phi_low, phi_upp);
-	covariance_theta_phi = calculateCovariance(2, 3, theta_mean, phi_mean, current_P_bin_center, p_diff_this_bin, theta_diff_this_bin, phi_diff_this_bin, p_low, p_upp, theta_low, theta_upp, phi_low, phi_upp);
-	N_good_events = p_diff_this_bin.size();     // Any of the kinematic variables can be used for this
+	// ------------------ Calculate covariance with reset ranges--------------------//
+	// Create an instance of CovInputParams and initialize its members
+	CovInputParams C_P_params(1, 1, p_mean, p_mean, current_P_bin_center, p_diff_this_bin, theta_diff_this_bin, phi_diff_this_bin, p_low, p_upp, theta_low, theta_upp, phi_low, phi_upp);;
+        CovInputParams C_theta_params(2, 2, theta_mean, theta_mean, current_P_bin_center, p_diff_this_bin, theta_diff_this_bin, phi_diff_this_bin, p_low, p_upp, theta_low, theta_upp, phi_low, phi_upp);
+        CovInputParams C_phi_params(3, 3, phi_mean, phi_mean, current_P_bin_center, p_diff_this_bin, theta_diff_this_bin, phi_diff_this_bin, p_low, p_upp, theta_low, theta_upp, phi_low, phi_upp);
+        CovInputParams C_P_phi_params(1, 3, p_mean, phi_mean, current_P_bin_center, p_diff_this_bin, theta_diff_this_bin, phi_diff_this_bin, p_low, p_upp, theta_low, theta_upp, phi_low, phi_upp);
+        CovInputParams C_P_theta_params(1, 2, p_mean, theta_mean, current_P_bin_center, p_diff_this_bin, theta_diff_this_bin, phi_diff_this_bin, p_low, p_upp, theta_low, theta_upp, phi_low, phi_upp);
+        CovInputParams C_theta_phi_params(2, 3, theta_mean, phi_mean, current_P_bin_center, p_diff_this_bin, theta_diff_this_bin, phi_diff_this_bin, p_low, p_upp, theta_low, theta_upp, phi_low, phi_upp);
+
+	calculateCovariance(variance_P, N_events_C_P, C_P_params);
+        calculateCovariance(variance_theta, N_events_C_theta, C_theta_params);
+        calculateCovariance(variance_phi, N_events_C_phi, C_phi_params);
+        calculateCovariance(covariance_P_phi, N_events_C_P_phi, C_P_phi_params);
+        calculateCovariance(covariance_P_theta, N_events_C_P_theta, C_P_theta_params);
+        calculateCovariance(covariance_theta_phi, N_events_C_theta_phi, C_theta_phi_params);
+
+	N_good_events = N_events_C_P;  // This should be the same for all covariance elements
 
       	// Calculate errors on covariance values      
 	variance_P_err = sqrt(2.0 / (N_good_events - 1)) * variance_P; 
@@ -921,25 +888,6 @@ int covMatrix_extraction()
         phi_offset_hist->Fill(current_P_bin_center, current_theta_bin_center, current_phi_bin_center, phi_diff_offset);
 	//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~//
 	
-	/*
-	Double_t p_var_root = kin_delta_2D_plots[2]->GetCovariance(2, 2);
-        Double_t phi_var_root = kin_delta_2D_plots[2]->GetCovariance(1, 1);
-        Double_t theta_var_root = kin_delta_2D_plots[1]->GetCovariance(2, 2);
-        Double_t p_phi_cov_root = kin_delta_2D_plots[2]->GetCovariance(1, 2);
-        Double_t p_theta_cov_root = kin_delta_2D_plots[0]->GetCovariance(1, 2);
-        Double_t theta_phi_cov_root = kin_delta_2D_plots[1]->GetCovariance(1, 2);
-	
-	if ((pBin == 0) && (thetaBin == 0) && (phiBin == 0)) {
-          covMatrix_root_method_txt_file.open(Form("/work/clas12/reedtg/clas12_kinematic_fitter/dev_trevor/root_th2_results/covariances_root_method_%s.txt", out_name.Data()));
-        }
-        else {
-          covMatrix_root_method_txt_file.open(Form("/work/clas12/reedtg/clas12_kinematic_fitter/dev_trevor/root_th2_results/covariances_root_method_%s.txt", out_name.Data()), std::ios::app);
-        }
-	covMatrix_root_method_txt_file << "P: " << current_P_bin_center << ", theta: " << current_theta_bin_center << ", phi: " << current_phi_bin_center << ", C_p: " << p_var_root << ", C_theta: " << theta_var_root << ", C_phi: " << phi_var_root << ", C_p_phi: " << p_phi_cov_root << ", C_p_theta: " << p_theta_cov_root << ", C_theta_phi: " << theta_phi_cov_root << ", p_diff_offset: " << p_diff_offset << ", theta_diff_offset: " << theta_diff_offset << ", phi_diff_offset: " << phi_diff_offset << std::endl;
-
-	covMatrix_root_method_txt_file.close();
-	*/
-
 	
 	for (TH1* hist : kin_delta_plots) {
 	  delete hist;
@@ -1004,9 +952,10 @@ void read_Hipo(char inputFile[256], int part_charge, float part_mass, partInfoSt
   hipo::event      event;
   hipo::bank RECPART(factory.getSchema("REC::Particle"));
   hipo::bank MCPART(factory.getSchema("MC::Particle"));
-  hipo::bank RECCAL(factory.getSchema("REC::Calorimeter"));
-  hipo::bank RECTRACK(factory.getSchema("REC::Track"));
+  //hipo::bank RECCAL(factory.getSchema("REC::Calorimeter"));
+  //hipo::bank RECTRACK(factory.getSchema("REC::Track"));
   hipo::bank TBTRACK(factory.getSchema("TimeBasedTrkg::TBTracks"));
+  hipo::bank MC_MATCH(factory.getSchema("MC::GenMatch"));
       
   int event_num;
   int good_events = 0;
@@ -1020,9 +969,10 @@ void read_Hipo(char inputFile[256], int part_charge, float part_mass, partInfoSt
     reader.read(event);
     event.getStructure(RECPART);
     event.getStructure(MCPART);
-    event.getStructure(RECCAL);
-    event.getStructure(RECTRACK);
+    //event.getStructure(RECCAL);
+    //event.getStructure(RECTRACK);
     event.getStructure(TBTRACK);
+    event.getStructure(MC_MATCH);
     
     //Get reconstructed particle info
     std::vector<int> rec_pid;
@@ -1033,14 +983,14 @@ void read_Hipo(char inputFile[256], int part_charge, float part_mass, partInfoSt
     std::vector<int> rec_sector;
     std::vector<float> chi2;
     std::vector<int> ndf;
-    read_Part_Bank(RECPART, RECCAL, RECTRACK, TBTRACK, &rec_pid, &rec_px, &rec_py, &rec_pz, &rec_sector, &chi2, &ndf, event_count);
+    read_Rec_Part_Bank(RECPART, MC_MATCH, TBTRACK, &rec_pid, &rec_px, &rec_py, &rec_pz, &rec_sector, &chi2, &ndf, event_count);
 
     //Get generated particle info
     std::vector<int> mc_pid;
     std::vector<float> mc_px;
     std::vector<float> mc_py;
     std::vector<float> mc_pz;
-    read_Part_Bank(MCPART, &mc_pid, &mc_px, &mc_py, &mc_pz);
+    read_MC_Part_Bank(MCPART, &mc_pid, &mc_px, &mc_py, &mc_pz);
     
     //Get the kinematics
     TLorentzVector mc;
@@ -1093,7 +1043,7 @@ void read_Hipo(char inputFile[256], int part_charge, float part_mass, partInfoSt
 	  partInfo.mc_p_vec.push_back(mc_p);
 	  partInfo.p_diff_vec.push_back(p_diff);
 	  partInfo.chi2_vec.push_back(chi2[0]);
-	  partInfo.ndf_vec.push_back(ndf[0]);
+	  //partInfo.ndf_vec.push_back(ndf[0]);
 	  partInfo.theta_diff_deg_vec.push_back(theta_diff_deg);
 	  partInfo.phi_diff_deg_vec.push_back(phi_diff_deg);
 	  partInfo.rec_theta_deg_vec.push_back(rec_theta_deg);
@@ -1109,7 +1059,7 @@ void read_Hipo(char inputFile[256], int part_charge, float part_mass, partInfoSt
   //std::cout << rejected_events << " rejected events" << std::endl;
 }
 //This is intended to be used for reading the MC info
-void read_Part_Bank(hipo::bank PartBank, std::vector<int>* pid, std::vector<float>* px, std::vector<float>* py, std::vector<float>* pz){  
+void read_MC_Part_Bank(hipo::bank PartBank, std::vector<int>* pid, std::vector<float>* px, std::vector<float>* py, std::vector<float>* pz){  
   int nrows = PartBank.getRows();
   for(int i = 0; i < nrows; i++){
     int   current_pid = PartBank.getInt("pid",i);
@@ -1123,12 +1073,23 @@ void read_Part_Bank(hipo::bank PartBank, std::vector<int>* pid, std::vector<floa
   }  
 }
 //This is intended to be used for reading Rec particle info 
-void read_Part_Bank(hipo::bank PartBank, hipo::bank CalBank, hipo::bank RecTrack, hipo::bank TBTrack, std::vector<int>* pid, std::vector<float>* px, std::vector<float>* py, std::vector<float>* pz, std::vector<int> *rec_sector, std::vector<float> *chi2, std::vector<int> *ndf, int &event_count){
+void read_Rec_Part_Bank(hipo::bank PartBank, hipo::bank MCMatchBank, hipo::bank TBTrack, std::vector<int>* pid, std::vector<float>* px, std::vector<float>* py, std::vector<float>* pz, std::vector<int> *rec_sector, std::vector<float> *chi2, std::vector<int> *ndf, int &event_count){
+
+  // Fail safe for truth matching
+  if (MCMatchBank.getRows() < 1)
+    return;
+
+  // This assumes only 1 particle in MC::GenMatch bank 
+  int index_truth = MCMatchBank.getInt("pindex", 0);
+
+  if (index_truth < 0)
+    return;
+
 
   event_count++; 
   int nrows = PartBank.getRows();
-  int calBank_rows = CalBank.getRows();
-  int rectrack_rows = RecTrack.getRows();
+  //int calBank_rows = CalBank.getRows();
+  //int rectrack_rows = RecTrack.getRows();
   int tbtrack_rows = TBTrack.getRows();
   //event_count->push_back(nrows);
 
@@ -1144,53 +1105,25 @@ void read_Part_Bank(hipo::bank PartBank, hipo::bank CalBank, hipo::bank RecTrack
   std::vector<int> charge_vec;
   int clusters_recorded = 0;
 
-  int count = 0;
-  for (int j = 0; j < nrows; j++){
-    float current_chi2;
-    int current_ndf;
-    float current_chi2_ndf;
-    int current_sec;
-    int   current_pid = PartBank.getInt("pid",j);
-    float  current_px = PartBank.getFloat("px",j);
-    float  current_py = PartBank.getFloat("py",j);
-    float  current_pz = PartBank.getFloat("pz",j);
-    float  current_chi2pid = PartBank.getFloat("chi2pid",j);
-    int current_status = PartBank.getInt("status",j);
-    int charge = PartBank.getInt("charge",j);
-    int current_pindex = -2;
 
-    // Get info from TimeBasedTrkg::TBTracks bank
-    get_track_parameters(j+1, TBTrack, current_sec, current_chi2, current_ndf);
-    
-    //Rather than requiring the correct pid, just require the correct charge
-    if (charge == part_charge) {
-      px_vec.push_back(current_px);           
-      py_vec.push_back(current_py);    
-      pz_vec.push_back(current_pz);  
-      pid_vec.push_back(current_pid);
-      chi2_vec.push_back(current_chi2);
-      ndf_vec.push_back(current_ndf);
-      status_vec.push_back(current_status);
-      sector_vec.push_back(current_sec);
-      charge_vec.push_back(charge);
-    }
-  }
+  int   current_pid = PartBank.getInt("pid",index_truth);
+  float  current_px = PartBank.getFloat("px",index_truth);
+  float  current_py = PartBank.getFloat("py",index_truth);
+  float  current_pz = PartBank.getFloat("pz",index_truth);
+  float  current_chi2pid = PartBank.getFloat("chi2pid",index_truth);
+  int current_status = PartBank.getInt("status",index_truth);
+  int charge = PartBank.getInt("charge",index_truth);
+  int current_pindex = -2;
 
-  //Only save the particle info if there is just one particle of the correct charge per event
-  if (pid_vec.size() == 1 && (TMath::Abs(status_vec[0]) >= 2000 && TMath::Abs(status_vec[0]) < 3000)) {
-    px->push_back(px_vec[0]);      
-    py->push_back(py_vec[0]);   
-    pz->push_back(pz_vec[0]);   
-    pid->push_back(pid_vec[0]);
-    chi2->push_back(chi2_vec[0]);
-    ndf->push_back(ndf_vec[0]);
-    }
-  else {
-    InfoFile << "event rejected: " << "pid_vec.size()=" << pid_vec.size() << ", status_vec size=" << status_vec.size() << std::endl;
-    if (pid_vec.size() == 1) {
-      InfoFile << "pid: " << pid_vec[0] << ", charge: " << charge_vec[0] << ", status_vec size=" << status_vec[0] << std::endl;
-    }
-  }
+
+  //Save particle info
+  px->push_back(px_vec[0]);      
+  py->push_back(py_vec[0]);   
+  pz->push_back(pz_vec[0]);   
+  pid->push_back(pid_vec[0]);
+  chi2->push_back(chi2_vec[0]);
+  ndf->push_back(ndf_vec[0]);
+  
 }
 
 void get_track_parameters(int index, const hipo::bank TrackBank, int& track_sec, float& track_chi2, int& track_ndf)
