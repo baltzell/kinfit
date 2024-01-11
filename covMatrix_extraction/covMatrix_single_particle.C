@@ -302,6 +302,7 @@ const TString part_type = "#pi^{+}";
 //const TString part_type = "#pi^{-}";
 float part_mass;
 int part_charge;
+double theta_bin_max;
 
 //Set boundaries for the kinematics. This is used to set the initial bounds for the (rec - mc) distributions of the kinematics
 const double p_low_init = -1;
@@ -518,7 +519,7 @@ int covMatrix_extraction()
   double theta_diff_offset;
   double phi_diff_offset;
   double holding_var;
-  
+
   //TString delta_kin_pdf_name = Form("plots/rec_mc_diff_plots_%s.pdf", out_name.Data());
   auto delta_kin_canvas = new TCanvas("delta_kin_canvas", "delta_kin_canvas", 800, 1000);
   //delta_kin_canvas->Print(delta_kin_pdf_name + "[");
@@ -983,6 +984,7 @@ void read_Hipo(char inputFile[256], int part_charge, float part_mass, partInfoSt
     std::vector<int> rec_sector;
     std::vector<float> chi2;
     std::vector<int> ndf;
+
     read_Rec_Part_Bank(RECPART, MC_MATCH, TBTRACK, &rec_pid, &rec_px, &rec_py, &rec_pz, &rec_sector, &chi2, &ndf, event_count);
 
     //Get generated particle info
@@ -991,7 +993,7 @@ void read_Hipo(char inputFile[256], int part_charge, float part_mass, partInfoSt
     std::vector<float> mc_py;
     std::vector<float> mc_pz;
     read_MC_Part_Bank(MCPART, &mc_pid, &mc_px, &mc_py, &mc_pz);
-    
+
     //Get the kinematics
     TLorentzVector mc;
     TLorentzVector rec;
@@ -1085,7 +1087,6 @@ void read_Rec_Part_Bank(hipo::bank PartBank, hipo::bank MCMatchBank, hipo::bank 
   if (index_truth < 0)
     return;
 
-
   event_count++; 
   int nrows = PartBank.getRows();
   //int calBank_rows = CalBank.getRows();
@@ -1115,14 +1116,13 @@ void read_Rec_Part_Bank(hipo::bank PartBank, hipo::bank MCMatchBank, hipo::bank 
   int charge = PartBank.getInt("charge",index_truth);
   int current_pindex = -2;
 
-
   //Save particle info
-  px->push_back(px_vec[0]);      
-  py->push_back(py_vec[0]);   
-  pz->push_back(pz_vec[0]);   
-  pid->push_back(pid_vec[0]);
-  chi2->push_back(chi2_vec[0]);
-  ndf->push_back(ndf_vec[0]);
+  px->push_back(current_px);      
+  py->push_back(current_py);   
+  pz->push_back(current_pz);   
+  pid->push_back(current_pid);
+  chi2->push_back(current_chi2pid);
+  //ndf->push_back(ndf_vec[0]);
   
 }
 
