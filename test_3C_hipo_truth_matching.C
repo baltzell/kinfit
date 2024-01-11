@@ -166,7 +166,8 @@ int test_3C_hipo_truth_matching()
 		//char dir_path[256] = "/volatile/clas12/reedtg/clas12_kinfitter/rho_to_pippim_gen_events_7-20-23/rho_to_pippim/cooked/out_rho_to_pippim130.rec.hipo";
 		// char dir_path[256] = "/volatile/clas12/reedtg/clas12_kinfitter/rho_to_pippim_gen_events_7-20-23/rho_to_pippim/cooked/out_rho_to_pippim130.rec.hipo";
 		//char dir_path[256] = "/volatile/clas12/reedtg/clas12_kinfitter/rho_to_pippim_gen_events_8-23-23/rho_to_pippim/cooked/";
-		char dir_path[256] = "/volatile/clas12/reedtg/clas12_kinfitter/rho_to_pippim_gen_events/rho_to_pippim_8-26-23/cooked/";
+		//char dir_path[256] = "/volatile/clas12/reedtg/clas12_kinfitter/rho_to_pippim_gen_events/rho_to_pippim_8-26-23/cooked/";
+		char dir_path[256] = "/volatile/clas12/reedtg/clas12_kinfitter/cov_matrix/pip_sec2_truth/cooked/";
 		//------------------------------------------------------------------//
 
 		DIR *dr;
@@ -265,8 +266,10 @@ void read_Hipo(char inputFile[256], std::vector<int> required_pids, std::vector<
 		//TString input_pim = "/work/clas12/reedtg/clas12_kinematic_fitter/dev_trevor/pim_minEventCut_covariances.root";
 		//TString input_pip = "/work/clas12/reedtg/clas12_kinematic_fitter/dev_trevor/pip_covariances_9-18-23.root";
 		//TString input_pim = "/work/clas12/reedtg/clas12_kinematic_fitter/dev_trevor/pim_covariances_9-19-23.root";
-		TString input_pip = "/work/clas12/reedtg/clas12_kinematic_fitter/updated_4-16-23/kinfit/covMatrix_extraction/pip_covariances_10-12-23.root";
+		//TString input_pip = "/work/clas12/reedtg/clas12_kinematic_fitter/updated_4-16-23/kinfit/covMatrix_extraction/pip_covariances_10-12-23.root";
 		TString input_pim = "/work/clas12/reedtg/clas12_kinematic_fitter/updated_4-16-23/kinfit/covMatrix_extraction/pim_covariances_10-11-23.root";
+
+		TString input_pip = "/u/home/reedtg/clas12_kinfitter_2/kinfit/covMatrix_extraction/cov_root_files/covariances_pip_10000_in_files.root";
 
 		KinCovariance Covariance_PiPlus(input_pip);
 		KinCovariance Covariance_PiMinus(input_pim);
@@ -514,15 +517,18 @@ void read_Rec_Part_Bank(hipo::bank PartBank, hipo::bank MCMatchBank, hipo::bank 
 		TLorentzVector piplus_vec;
 		TLorentzVector piminus_vec;
 
-		int index_pi_plus = MCMatchBank.getInt("pindex", 2);
+		int index_pi_plus = MCMatchBank.getInt("pindex", 0);
 		int index_pi_minus = MCMatchBank.getInt("pindex", 3);
 
 		// fail safe for truth matching
-		if (index_pi_plus == index_pi_minus)
-				return;
+		//if (index_pi_plus == index_pi_minus)
+		//		return;
 
-		if (index_pi_plus < 0 || index_pi_minus < 0)
-				return;
+		//if (index_pi_plus < 0 || index_pi_minus < 0)
+		//		return;
+
+		if (index_pi_plus < 0) 
+		  return;
 
 		int status_pi_plus = PartBank.getInt("status", index_pi_plus);
 		if (((int)(abs(status_pi_plus) / 1000) == 2) && pass_fid_cut_DC(index_pi_plus, TrajBank) && PartBank.getInt("charge", index_pi_plus) == 1)
@@ -575,9 +581,9 @@ void read_MC_Part_Bank(hipo::bank PartBank, std::vector<int> required_pids, std:
 {
 
 		TLorentzVector piplus_vec;
-		pid_list->push_back(PartBank.getInt("pid", 2));
+		pid_list->push_back(PartBank.getInt("pid", 0));
 		in_part_index->push_back(0);
-		piplus_vec.SetXYZM(PartBank.getFloat("px", 2), PartBank.getFloat("py", 2), PartBank.getFloat("pz", 2), 0.139);
+		piplus_vec.SetXYZM(PartBank.getFloat("px", 0), PartBank.getFloat("py", 0), PartBank.getFloat("pz", 0), 0.139);
 		mc_vec_list->push_back(piplus_vec);
 
 		/*TLorentzVector piminus_vec;
