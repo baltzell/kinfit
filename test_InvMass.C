@@ -5,6 +5,7 @@
 #include "KinParticle.h"
 #include "KinFitTest.h"
 
+
 int test_InvMass(const int max_events=10000, const float bg_fraction=0.1)
 {
     const double invmass = 3.0;
@@ -17,6 +18,10 @@ int test_InvMass(const int max_events=10000, const float bg_fraction=0.1)
     event.SetDecay(JPsi, masses.size(), &masses[0]);
 
     KinFitTest test("IM", parts, JPsi, 0, 0, invmass);
+
+    KinCovariance Covariance_PiPlus("../KinematicFitter/pip_covariances.root");//("pip_covariances.root");//
+    TMatrixD essai = Covariance_PiPlus.Interpolate(6, 5., 30., -50);
+    essai.Print();
 
     std::vector<double> resolutions;
     std::vector<int> constraint_idx;
@@ -66,6 +71,8 @@ int test_InvMass(const int max_events=10000, const float bg_fraction=0.1)
 
         test.fill_MissingMass(kin, parts_gen, parts_sme, weight, is_background);
         test.fill_InvariantMass(kin, parts_gen, parts_sme, constraint_idx, weight);
+
+        delete kin;
     }
 
     test.plot();
